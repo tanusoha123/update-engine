@@ -234,6 +234,8 @@
 		F9C66E1D0E8191A6008AB128 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38AF7D4A0E781CA90060B504 /* Foundation.framework */; };
 		F9C66E1F0E8191B2008AB128 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38AF7D4A0E781CA90060B504 /* Foundation.framework */; };
 		F9C66E210E8191C8008AB128 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38AF7D4A0E781CA90060B504 /* Foundation.framework */; };
+		F9FBC9BC0E883E94006E0CD1 /* KSURLData.m.xxd in Sources */ = {isa = PBXBuildFile; fileRef = F9634E630E78556D00ED7AA3 /* KSURLData.m.xxd */; };
+		F9FBC9BE0E883E97006E0CD1 /* KSURLData.m.xxd in Sources */ = {isa = PBXBuildFile; fileRef = F9634E630E78556D00ED7AA3 /* KSURLData.m.xxd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -241,7 +243,7 @@
 			isa = PBXContainerItemProxy;
 			containerPortal = F98DD3E10E5F4B5E00FE644D /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 38AF82420E81A5FA0060B504 /* EngineRunner */;
+			remoteGlobalIDString = 38AF82420E81A5FA0060B504;
 			remoteInfo = EngineRunner;
 		};
 		F95BAA7C0E5F5A6400C4AA72 /* PBXContainerItemProxy */ = {
@@ -1463,6 +1465,7 @@
 				38AF7FFB0E799EAA0060B504 /* GTMPath.m in Sources */,
 				38AF7FFD0E799EAA0060B504 /* GTMNSString+FindFolder.m in Sources */,
 				38AF80110E799EE50060B504 /* HelloEngine.m in Sources */,
+				F9FBC9BC0E883E94006E0CD1 /* KSURLData.m.xxd in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1519,6 +1522,7 @@
 				38AF82AD0E82CA3F0060B504 /* ERDryRunCommand.m in Sources */,
 				38AF830E0E87EB240060B504 /* ERRunUpdateTicketCommand.m in Sources */,
 				38AF83110E87EEAD0060B504 /* ERDryRunTicketCommand.m in Sources */,
+				F9FBC9BE0E883E97006E0CD1 /* KSURLData.m.xxd in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
