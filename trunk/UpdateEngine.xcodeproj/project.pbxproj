@@ -823,7 +823,7 @@
 				F9A706830E5F4BB9004B295E /* DebugUtils */,
 				F9A706880E5F4BB9004B295E /* Foundation */,
 			);
-			name = "google-toolbox-for-mac";
+			path = "google-toolbox-for-mac";
 			sourceTree = "<group>";
 		};
 		F9A706830E5F4BB9004B295E /* DebugUtils */ = {
@@ -1134,7 +1134,7 @@
 			children = (
 				F9A7065C0E5F4B87004B295E /* google-toolbox-for-mac */,
 			);
-			name = externals;
+			path = externals;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
