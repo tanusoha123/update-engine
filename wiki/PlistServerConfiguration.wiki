@@ -1,0 +1,1 @@
+#summary Configuration information for the server plist file format
