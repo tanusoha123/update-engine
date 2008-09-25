@@ -1,0 +1,28 @@
+#summary Update Engine Testing and Code Coverage
+#labels Featured
+
+= Update Engine Testing and Code Coverage =
+
+The Update Engine engineering team is very proud of the level of unit
+testing and test coverage achieved.  Every source file in `Common` and
+`Core` has a corresponding unit test.
+
+
+== Running With Coverage ==
+
+The Update Engine Xcode project is already set up to generate coverage when
+the tests are run in Debug mode.  To see the coverage for Update Engine,
+build and run the "Test All" target.  Once it's finished doing its thing,
+drag and drop your `build` directory on top of 
+[http://code.google.com/p/coverstory/ CoverStory].
+
+To filter out the Google Toolbox for Mac source files, which we don't
+compltely exercise in our tests, enter `/update-engine/C` in the search box
+at the bottom of the !CoverStory window.
+
+http://update-engine.googlecode.com/svn/site/coverage.png
+
+= Some Interesting Tests =
+
+Point out some interesting test techniques here
+
