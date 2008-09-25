@@ -1,4 +1,5 @@
 #summary How does Update Engine Work?
+#label Featured
 
 = Introduction =
 
