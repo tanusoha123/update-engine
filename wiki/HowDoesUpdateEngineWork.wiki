@@ -8,7 +8,7 @@ determine if installed software needs to be updated, and if so, it
 downloads and installs the new software.
 
 == Tickets ==
-
+s
 Update Engine knows about installed products through a set of tickets.
 A ticket describes a single product to Update Engine, including:
   * Product's name or identifier, like com.google.Earth
@@ -21,7 +21,7 @@ whether persistently on disk or just in-memory.
 
 == Server ==
 
-The URL in each ticket identifies a property list, abbreviated plist, that
+The URL in each ticket identifies a property list, abbreviated _plist_, that
 contains information about that product's updates. This plist contains
 a predicate that tells Update Engine whether or not the update is
 needed. It also contains the URL for the new software's disk image,
@@ -32,21 +32,16 @@ Update Engine will download this plist from the specified URL,
 evaluate the rules, and then download and install all necessary
 updates.
 
+You are free to make your own subclasses of KSServer to use any protocol
+with any server you want.  The plist server makes it easy to drop a 
+propery list file on an internet host and use it for updates.
+
 == Installing ==
 
 To install the new software, Update Engine mounts the downloaded disk
-image, and runs a script that must be present at the root of the disk
-image. This required script is ultimately responsible for upgrading
+image and runs a script that must be present at the disk image root.
+This required script is ultimately responsible for upgrading
 the software. This script provides a layer of abstraction that enables
 Update Engine to "update" virtually any type of software.  More
 information can be found at EngineInstallScripts.
 
-
-
-
-= Details =
-
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
