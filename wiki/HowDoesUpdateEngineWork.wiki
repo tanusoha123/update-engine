@@ -34,7 +34,7 @@ updates.
 
 You are free to make your own subclasses of KSServer to use any protocol
 with any server you want.  The plist server makes it easy to drop a 
-propery list file on an internet host and use it for updates.
+property list file on an internet host and use it for updates.
 
 == Installing ==
 
