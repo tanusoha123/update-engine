@@ -40,12 +40,14 @@ return values for this delegate method are the following:
 }}}
 
 Sent to the delegate when product updates are available. The
-`products` array is an array of KSUpdateInfos, each of with has keys defined
-in KSUpdateInfo.h. The delegate should return an array of the products from
-the `products` list that should be installed silently.
+`products` array is an array of KSUpdateInfos, each of with has keys
+defined in KSUpdateInfo.h.  Much of the information in the
+KSUpdateInfos comes from the ticket, configurable by your
+PlistServerConfiguration file.  The delegate should return an array of
+the products from the `products` list that should be installed
+silently.
 
 If not implemented, the return value is `products`.
-
 
 
 {{{
@@ -53,8 +55,8 @@ If not implemented, the return value is `products`.
 }}}
 
 Returns a KSCommandRunner instance that can run commands on the delegates'
-behalf. UpdateEngine may call this method multiple times to get a
-KSCommandRunner for running UpdateEngine preinstall and 
+behalf. Update Engine may call this method multiple times to get a
+KSCommandRunner for running Update Engine preinstall and 
 postinstall scripts. See EngineInstallScripts for more details on these scripts.
 
 If not implemented, a KSTaskCommandRunner is created.
@@ -115,7 +117,7 @@ If not implemented, the return value is `products`.
 - (void)engineFinished:(KSUpdateEngine *)engine wasSuccess:(BOOL)wasSuccess
 }}}
 
-Called when UpdateEngine is finished processing an update request.
+Called when Update Engine is finished processing an update request.
 `wasSuccess` indicates whether the update check was successful or not. An
 update will fail if, for example, there is no network connection. It will *not*
 fail if an update was downloaded and that update's installer happened to
