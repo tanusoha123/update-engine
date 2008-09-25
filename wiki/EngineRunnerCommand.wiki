@@ -1,0 +1,56 @@
+#summary The EngineRunner command
+#labels Featured
+
+= Engine Runner =
+
+The EngineRunner command is one of the Update Engine sample programs.
+It is a command-line tool that exposes some useful bits of Update Engine
+functionality.  You can use it to experiment with Update Engine, or to
+maintain ticket stores, or even to run the update process for your applicaton.
+You can include the code directly in your application, or include 
+the EngineRunner command in your application bundle and call it directly
+with NSTask or
+[http://code.google.com/p/google-toolbox-for-mac/source/browse/trunk/Foundation/GTMScriptRunner.h GTMScriptRunner]
+
+== Command Syntax ==
+
+The syntax for EngineRunner is
+
+`EngineRunner _command_ -arg1 value -arg2 value -arg3 value ...`
+
+To see all of the commands supported by EngineRunner, run it without
+any commands.  To see help on a given command run 
+
+`EngineRunner _command_ -help`
+
+This will show you the optional and required parameters.
+
+== Running an Update ==
+
+To run an update, provide all of the information for the product on the
+command line:
+
+`EngineRunner run -productid com.greeble.hoover -version 1.2 -url http://example.com/updateInfo`
+
+If you want to see if your application would be considered updatable, use the `dryrun` command.  That goes through the motions of updating, but doesn't actually donwload or run anything.
+
+== Manipulating Tickets ==
+
+If you have several products you're managing, 
+
+{{{
+    $ EngineRunner add
+          -store /tmp/store.tix
+          -productid com.greeble.hoover
+          -version 1.2
+          -url http://example.com/updateInfo
+          -xcpath /Applications/Greebleator.app
+    Products that would update:
+      com.greeble.hoover
+}}}
+
+
+
+
+
+
