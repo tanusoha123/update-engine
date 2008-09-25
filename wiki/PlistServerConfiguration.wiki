@@ -32,7 +32,7 @@ Apple's
 [http://developer.apple.com/documentation/Cocoa/Conceptual/Predicates/Articles/pSyntax.html predicate format string syntax] and will be converted into an
 NSPredicate and run against an NSDictionary with two attributes:
 
-  * *SystemVersion* - This gives the predicate access to version information about the current OS. The value of this key is the contents of the file: `/System/Library/CoreServices/SystemVersion.plist`
+  * *!SystemVersion* - This gives the predicate access to version information about the current OS. The value of this key is the contents of the file: `/System/Library/CoreServices/SystemVersion.plist`
   * *Ticket* -This gives the predicate access to the product's currently installed version information via its corresponding KSTicket.
 
 The ticket itself contains several attributes.  Check out KSTicket.h
