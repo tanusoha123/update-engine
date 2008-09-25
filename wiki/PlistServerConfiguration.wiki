@@ -2,30 +2,21 @@
 #labels Featured
 
 Update Engine provides KSPlistServer, a KSServer subclass, that
-reads a property list at a given URL.  This property list contains the
+reads a property list at a given URL. This property list contains the
 information that Update Engine needs to determine if an update is
 needed, and where to download that update from.
 
 = Rules =
 
-The property list should contain a dictionary with one entry called `Rules`.  Rules is a an array of dictionaries, one for each product.  Each rule dictionary should have these keys:
+The property list should contain a dictionary with one entry called `Rules`. Rules is a an array of dictionaries, one for each product. Each rule dictionary should have these keys:
 
-  * *ProductID* - The unique identifier for the product (same as the
-        product ID used in the ticket).  The identifier for the product.
- 	Update Engine doesn't care about the actual contents of the ProductID.
-	They can be bundle IDs, UUIDs, blood types or shoe sizes.  Update Engine just 
-        compares them for equality with the product IDs in the tickets.
+  * *ProductID* - The unique identifier for the product (same as the product ID used in the ticket). The identifier for the product. Update Engine doesn't care about the actual contents of the ProductID. They can be bundle IDs, UUIDs, blood types or shoe sizes. Update Engine just compares them for equality with the product IDs in the tickets.
 
-  * *Predicate* - Any NSPredicate compatible string that determines 
-                  whether the update described by the current rule
-                  should be applied.  There are some Update Engine specific
-		  values you can use in your predicate.
+  * *Predicate* - Any NSPredicate compatible string that determines whether the update described by the current rule should be applied. There are some Update Engine specific values you can use in your predicate.
 
-  * *Codebase* - The URL where the update should be downloaded from.
-                 This URL must reference a disk image (DMG).
+  * *Codebase* - The URL where the update should be downloaded from. This URL must reference a disk image (DMG).
 
-  * *Hash* - The Base64-encoded SHA-1 hash of the file at the
-           `Codebase` URL.  An easy way to calculate this is with the command:
+  * *Hash* - The Base64-encoded SHA-1 hash of the file at the `Codebase` URL. An easy way to calculate this is with the command:
 {{{
             `openssl sha1 -binary dmg-filename | openssl base64`
 }}}
@@ -35,19 +26,15 @@ The property list should contain a dictionary with one entry called `Rules`.  Ru
 
 = Predicates =
 
-The `Predicate` in the rule enables lots of flexibility and configurability. The
-string specified for the predicate should use Apple's
+The `Predicate` in the rule enables lots of flexibility and
+configurability. The string specified for the predicate should use
+Apple's
 [http://developer.apple.com/documentation/Cocoa/Conceptual/Predicates/Articles/pSyntax.html
 predicate format string syntax] and will be converted into an
 NSPredicate and run against an NSDictionary with two attributes:
 
-  * *SystemVersion* - This gives the predicate access to version information
-                    about the current OS. The value of this key is the
-                    contents of the file:
-                    `/System/Library/CoreServices/SystemVersion.plist`
-  * *Ticket* -This gives the predicate access to the product's
-                    currently installed 
-                    version information via its corresponding KSTicket.
+  * *SystemVersion* - This gives the predicate access to version information about the current OS. The value of this key is the contents of the file: `/System/Library/CoreServices/SystemVersion.plist`
+  * *Ticket* -This gives the predicate access to the product's currently installed version information via its corresponding KSTicket.
 
 The ticket itself contains several attributes.  Check out KSTicket.h
 for all of them.  The most useful one would be `version`, the product
