@@ -6,7 +6,7 @@
 Once Update Engine has downloaded an update to an application, it will
 install the update using the KSAction subclass KSInstallAction. The
 KSInstallAction class is very straight-forward because it will only
-handle one specific type of install: a Update Engine install. It will
+handle one specific type of install: an Update Engine install. It will
 not directly handle drag-installs or even pkg installs. These types of
 installs will be handled indirectly by the scripts that will be run.
 
@@ -23,9 +23,11 @@ that are named appropriately) and will execute them in order.
 
 These scripts all have a leading dot so that the DMG used for updating
 the application could be the same one that customers download
-directly. Let us first discuss the .engine_install script, which is
-the only one that is required. This is the script that kicks off the
-upgrade of your application.
+directly from your company website.
+
+Let us first discuss the .engine_install script, which is the only one
+that is required. This is the script that kicks off the upgrade of
+your application.
 
 We use the term "install" here because from Update Engine's
 perspective it is "installing" something; likely, it's installing an
@@ -41,19 +43,19 @@ the mounted disk image (DMG) (i.e., the absolute path to where the
 scripts are located). This path may have spaces in it, so your shell
 scripts should quote appropriately.
 
-Update Engine enables these scripts to communicate by making
-each script's standard output available to other scripts in the form
-of an environment variable. This allows scripts to communicate by
-echoing output that the next script could read, grep, or process in
-some way. If your scripts don't care about this information, they can
-simply ignore the environment variables. The output from the
-.engine_preinstall script will be available in the `KS_PREINSTALL_OUT`
-variable, and the output of the .engine_install script will be
-stored in `KS_INSTALL_OUT`.
+Update Engine enables these scripts to communicate with other scripts
+downstream by making each script's standard output available to the
+other scripts in the form of an environment variable. This allows
+scripts to communicate by echoing output that the next script could
+read, grep, or process in some way. If your scripts don't care about
+this information, they can simply ignore the environment
+variables. The output from the .engine_preinstall script will be
+available in the `KS_PREINSTALL_OUT` variable, and the output of the
+.engine_install script will be stored in `KS_INSTALL_OUT`.
 
 In addition to the environment variables defined above, Update Engine
 will also set environment variables for all of the key/value pairs
-defined in the PlistServerConfigurationFile.  For example, if the
+defined in the PlistServerConfiguration file.  For example, if the
 config file for you product has a key/value par with "`foo`"="`bar`",
 Update Engine would set "`KS_foo`" to the value "`blah`" in your install
 scripts' environment.
@@ -61,7 +63,7 @@ scripts' environment.
 Return codes will follow normal Unix convention where 0 means success
 and anything else is considered a failure, with a few
 exceptions. `KS_INSTALL_TRY_AGAIN_LATER` is special return code that
-says "try again later" that the .engine_preinstall or .engine_install
+says "try again later" that the `.engine_preinstall` or `.engine_install`
 scripts will be able to return.
 
 If the preinstall script returns this value, Update Engine
@@ -81,7 +83,7 @@ but the `-engine:finished:wasSuccess:wantsReboot:` delegate method
 will be called (if supplied) with YES for `wantsReboot`.  It is up to
 your program to reboot the system.
 
-One easy way to do this is by asking `System Events` to do so with AppleScript, easily done via NSTask or [http://code.google.com/p/google-toolbox-for-mac/source/browse/trunk/Foundation/GTMScriptRunner.h GTMScriptRunner]:
+One easy way to do this is by asking `System Events` to do so with !AppleScript, easily done via NSTask or [http://code.google.com/p/google-toolbox-for-mac/source/browse/trunk/Foundation/GTMScriptRunner.h GTMScriptRunner]:
 {{{
 /usr/bin/osascript -e 'tell application \"System Events\" to restart'
 }}}
