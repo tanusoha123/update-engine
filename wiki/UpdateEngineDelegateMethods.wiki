@@ -4,7 +4,7 @@
 = Update Engine's Delegate Methods =
 
 These are methods that a KSUpdateEngine delegate may implement.  There
-are no required methods, and option methods will have some reasonable
+are no required methods, and optional methods will have some reasonable
 default action if not implemented.
 
 The methods are listed in the relative order in which they're called.
@@ -14,7 +14,7 @@ The methods are listed in the relative order in which they're called.
 - (void)engineStarted:(KSUpdateEngine *)engine
 }}}
 
-Called when UpdateEngine starts processing an update request.
+Called when Update Engine starts processing an update request.
 if not implemented, the return value is `products`.
 
 
