@@ -114,25 +114,33 @@ In this case, there is no `/Applications/Greebleator.app`.
 To see what products need an update (without actually running an update),
 use `dryrunticket`:
 
+{{{
     $ EngineRunner dryrunticket -store /tmp/store.tix
     No products to update
+}}}
 
+{{{
     $ EngineRunner dryrunticket -store /some/other/ticket/store.tix
     Products that would update:
       com.google.greeble
       com.google.bork
+}}}
 
 To actually run an update, use `runticket`:
 
+{{{
     $ EngineRunner runticket -store /some/other/ticket/store.tix
     finished update of com.google.greeble:  Success
     finished update of com.google.bork:  Success
+}}}
 
 Or supply a productID to just update one product:
 
+{{{
     $ EngineRunner runticket  -store /some/other/ticket/store.tix \
                        -productid com.google.bork
     finished update of com.google.bork:  Success
+}}}
 
 
 
