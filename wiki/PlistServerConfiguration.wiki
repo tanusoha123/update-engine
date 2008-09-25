@@ -29,8 +29,7 @@ The property list should contain a dictionary with one entry called `Rules`. Rul
 The `Predicate` in the rule enables lots of flexibility and
 configurability. The string specified for the predicate should use
 Apple's
-[http://developer.apple.com/documentation/Cocoa/Conceptual/Predicates/Articles/pSyntax.html
-predicate format string syntax] and will be converted into an
+[http://developer.apple.com/documentation/Cocoa/Conceptual/Predicates/Articles/pSyntax.html predicate format string syntax] and will be converted into an
 NSPredicate and run against an NSDictionary with two attributes:
 
   * *SystemVersion* - This gives the predicate access to version information about the current OS. The value of this key is the contents of the file: `/System/Library/CoreServices/SystemVersion.plist`
@@ -79,7 +78,7 @@ not 1.1 should be "upgraded" to version 1.1.
 
 This plist lists two rules for two different products (Foo and Bar). The
 Foo product will only ever apply to Tiger machines because the predicate
-looks for "SystemVersion.ProductVersion beginswith '10.4'". The Bar product
+looks for "!SystemVersion.!ProductVersion beginswith '10.4'". The Bar product
 only targets Leopard systems because its predicate includes a similar check
 for a system version beginning with '10.5'. The rest of this plist should be
 pretty straight forward.
