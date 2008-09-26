@@ -8,7 +8,7 @@ determine if installed software needs to be updated, and if so, it
 downloads and installs the new software.
 
 == Tickets ==
-s
+
 Update Engine knows about installed products through a set of tickets.
 A ticket describes a single product to Update Engine, including:
   * Product's name or identifier, like com.google.Earth
@@ -44,4 +44,3 @@ This required script is ultimately responsible for upgrading
 the software. This script provides a layer of abstraction that enables
 Update Engine to "update" virtually any type of software.  More
 information can be found at EngineInstallScripts.
-
