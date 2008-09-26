@@ -1,5 +1,5 @@
 #summary Update Engine's delegate methods install scripts work
-#labels Featured
+
 
 = Update Engine's Delegate Methods =
 
