@@ -134,6 +134,38 @@
 		38AF83110E87EEAD0060B504 /* ERDryRunTicketCommand.m in Sources */ = {isa = PBXBuildFile; fileRef = 38AF830F0E87EEAD0060B504 /* ERDryRunTicketCommand.m */; };
 		F94F33A50E70612E002EE743 /* ServerFailure.plist in Resources */ = {isa = PBXBuildFile; fileRef = F94F33A30E70612E002EE743 /* ServerFailure.plist */; };
 		F94F33A60E70612E002EE743 /* ServerSuccess.plist in Resources */ = {isa = PBXBuildFile; fileRef = F94F33A40E70612E002EE743 /* ServerSuccess.plist */; };
+		F94F495B0E91529200527D68 /* KSAction.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707B50E5F4BCF004B295E /* KSAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F495C0E91529200527D68 /* KSActionPipe.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707B70E5F4BCF004B295E /* KSActionPipe.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F495D0E91529200527D68 /* KSActionProcessor.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707BB0E5F4BCF004B295E /* KSActionProcessor.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F495E0E91529200527D68 /* KSCompositeAction.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707C10E5F4BCF004B295E /* KSCompositeAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F495F0E91529200527D68 /* KSDiskImage.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707C50E5F4BCF004B295E /* KSDiskImage.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49600E91529200527D68 /* KSEthernetAddress.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707C90E5F4BCF004B295E /* KSEthernetAddress.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49610E91529200527D68 /* KSMultiAction.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707CD0E5F4BCF004B295E /* KSMultiAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49620E91529200527D68 /* KSStatsCollection.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707D10E5F4BCF004B295E /* KSStatsCollection.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49630E91529200527D68 /* KSUUID.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707D50E5F4BCF004B295E /* KSUUID.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49640E91529200527D68 /* NSData+Hash.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707D90E5F4BCF004B295E /* NSData+Hash.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F496F0E91530F00527D68 /* KSCheckAction.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707E20E5F4BDC004B295E /* KSCheckAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49700E91530F00527D68 /* KSCommandRunner.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707E60E5F4BDC004B295E /* KSCommandRunner.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49710E91530F00527D68 /* KSDownloadAction.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707EA0E5F4BDC004B295E /* KSDownloadAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49720E91530F00527D68 /* KSExistenceChecker.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707EE0E5F4BDC004B295E /* KSExistenceChecker.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49730E91530F00527D68 /* KSFetcherFactory.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707F20E5F4BDC004B295E /* KSFetcherFactory.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49740E91530F00527D68 /* KSFrameworkStats.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707F60E5F4BDC004B295E /* KSFrameworkStats.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49750E91530F00527D68 /* KSInstallAction.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707FA0E5F4BDC004B295E /* KSInstallAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49760E91530F00527D68 /* KSMemoryTicketStore.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A707FE0E5F4BDC004B295E /* KSMemoryTicketStore.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49780E91530F00527D68 /* KSMultiUpdateAction.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A708040E5F4BDC004B295E /* KSMultiUpdateAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49790E91530F00527D68 /* KSPlistServer.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A7080C0E5F4BDC004B295E /* KSPlistServer.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F497A0E91530F00527D68 /* KSPrefetchAction.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A708100E5F4BDC004B295E /* KSPrefetchAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F497B0E91530F00527D68 /* KSPromptAction.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A708140E5F4BDC004B295E /* KSPromptAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F497C0E91530F00527D68 /* KSServer.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A708180E5F4BDC004B295E /* KSServer.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F497D0E91530F00527D68 /* KSSilentUpdateAction.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A7081C0E5F4BDC004B295E /* KSSilentUpdateAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F497E0E91530F00527D68 /* KSTicket.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A708200E5F4BDC004B295E /* KSTicket.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F497F0E91530F00527D68 /* KSTicketStore.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A708220E5F4BDC004B295E /* KSTicketStore.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49810E91530F00527D68 /* KSUpdateAction.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A7082A0E5F4BDC004B295E /* KSUpdateAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49820E91530F00527D68 /* KSUpdateCheckAction.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A7082E0E5F4BDC004B295E /* KSUpdateCheckAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49830E91530F00527D68 /* KSUpdateEngine+Configuration.h in Headers */ = {isa = PBXBuildFile; fileRef = F973118B0E7ED5C8001587BD /* KSUpdateEngine+Configuration.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49840E91530F00527D68 /* KSUpdateEngine.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A708320E5F4BDC004B295E /* KSUpdateEngine.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49850E91530F00527D68 /* KSUpdateEngineParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A708340E5F4BDC004B295E /* KSUpdateEngineParameters.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F94F49860E91530F00527D68 /* KSUpdateInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = F9A708370E5F4BDC004B295E /* KSUpdateInfo.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F95BAA590E5F59F800C4AA72 /* Encrypted.dmg in Resources */ = {isa = PBXBuildFile; fileRef = F9A707DE0E5F4BCF004B295E /* Encrypted.dmg */; };
 		F95BAA5A0E5F59F800C4AA72 /* WithSLA.dmg in Resources */ = {isa = PBXBuildFile; fileRef = F9A707DF0E5F4BCF004B295E /* WithSLA.dmg */; };
 		F95BAA5E0E5F5A0E00C4AA72 /* KSActionPipeTest.m in Sources */ = {isa = PBXBuildFile; fileRef = F9A707BA0E5F4BCF004B295E /* KSActionPipeTest.m */; };
@@ -1140,10 +1172,49 @@
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
+		F94F49B60E91538C00527D68 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F94F495B0E91529200527D68 /* KSAction.h in Headers */,
+				F94F495C0E91529200527D68 /* KSActionPipe.h in Headers */,
+				F94F495D0E91529200527D68 /* KSActionProcessor.h in Headers */,
+				F94F495E0E91529200527D68 /* KSCompositeAction.h in Headers */,
+				F94F495F0E91529200527D68 /* KSDiskImage.h in Headers */,
+				F94F49600E91529200527D68 /* KSEthernetAddress.h in Headers */,
+				F94F49610E91529200527D68 /* KSMultiAction.h in Headers */,
+				F94F49620E91529200527D68 /* KSStatsCollection.h in Headers */,
+				F94F49630E91529200527D68 /* KSUUID.h in Headers */,
+				F94F49640E91529200527D68 /* NSData+Hash.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F95BAA920E5F5BFD00C4AA72 /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F94F496F0E91530F00527D68 /* KSCheckAction.h in Headers */,
+				F94F49700E91530F00527D68 /* KSCommandRunner.h in Headers */,
+				F94F49710E91530F00527D68 /* KSDownloadAction.h in Headers */,
+				F94F49720E91530F00527D68 /* KSExistenceChecker.h in Headers */,
+				F94F49730E91530F00527D68 /* KSFetcherFactory.h in Headers */,
+				F94F49740E91530F00527D68 /* KSFrameworkStats.h in Headers */,
+				F94F49750E91530F00527D68 /* KSInstallAction.h in Headers */,
+				F94F49760E91530F00527D68 /* KSMemoryTicketStore.h in Headers */,
+				F94F49780E91530F00527D68 /* KSMultiUpdateAction.h in Headers */,
+				F94F49790E91530F00527D68 /* KSPlistServer.h in Headers */,
+				F94F497A0E91530F00527D68 /* KSPrefetchAction.h in Headers */,
+				F94F497B0E91530F00527D68 /* KSPromptAction.h in Headers */,
+				F94F497C0E91530F00527D68 /* KSServer.h in Headers */,
+				F94F497D0E91530F00527D68 /* KSSilentUpdateAction.h in Headers */,
+				F94F497E0E91530F00527D68 /* KSTicket.h in Headers */,
+				F94F497F0E91530F00527D68 /* KSTicketStore.h in Headers */,
+				F94F49810E91530F00527D68 /* KSUpdateAction.h in Headers */,
+				F94F49820E91530F00527D68 /* KSUpdateCheckAction.h in Headers */,
+				F94F49830E91530F00527D68 /* KSUpdateEngine+Configuration.h in Headers */,
+				F94F49840E91530F00527D68 /* KSUpdateEngine.h in Headers */,
+				F94F49850E91530F00527D68 /* KSUpdateEngineParameters.h in Headers */,
+				F94F49860E91530F00527D68 /* KSUpdateInfo.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1279,6 +1350,7 @@
 			buildPhases = (
 				F9A708680E5F4DBF004B295E /* Sources */,
 				F9A708690E5F4DBF004B295E /* Frameworks */,
+				F94F49B60E91538C00527D68 /* Headers */,
 			);
 			buildRules = (
 			);

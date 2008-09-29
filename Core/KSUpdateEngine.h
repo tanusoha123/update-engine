@@ -134,12 +134,9 @@
 
 // KSUpdateEngineDelegateMethods
 //
-// These are methods that a KSUpdateEngine delegate may implement. Each method
-// is marked as either required or optional. Optional methods will have some
-// "reasonable" default value if not implemented. If a required method is not
-// implemented the program may crash at runtime, produce incorrect results, or
-// produce undefined results in any number of ways. Just make sure you implement
-// all required methods.
+// These are methods that a KSUpdateEngine delegate may implement.  There
+// are no required methods, and optional methods will have some reasonable
+// default action if not implemented.
 //
 // The methods are listed in the relative order in which they're called.
 @interface KSUpdateEngine (KSUpdateEngineDelegateMethods)
@@ -245,8 +242,9 @@
 //
 @interface KSUpdateEngine (KSUpdateEngineActionPrivateCallbackMethods)
 
-// Calls the KSUpdateEngine delegate's -engine:shouldPrefetchProducts: method if
-// it is implemented. Otherwise, the |products| argument is returned.
+// Calls the KSUpdateEngine delegate's -engine:shouldPrefetchProducts:
+// method if it is implemented. Otherwise, the |products| argument is
+// returned.
 - (NSArray *)action:(KSAction *)action
   shouldPrefetchProducts:(NSArray *)products;
 
@@ -256,24 +254,22 @@
 - (NSArray *)action:(KSAction *)action
   shouldSilentlyUpdateProducts:(NSArray *)products;
 
-// Calls the KSUpdateEngine delegate's -commandRunnerForEngine: method. The
-// the delegate is required to implement this method. (though, if the delegate
-// doesn't implement it, we'll be nice and return nil anyway).
+// Calls the KSUpdateEngine delegate's -commandRunnerForEngine: method.
+// If the delegate does not implement -commandRunnerForEngine:, a new
+// KSCommandRunner will be created.
 - (id<KSCommandRunner>)commandRunnerForAction:(KSAction *)action;
 
 // Calls the KSUpdateEngine delegate's -engine:starting: method.
-// The delegate does not need to implement this method.
 - (void)action:(KSAction *)action
       starting:(KSUpdateInfo *)updateInfo;
 
 // Calls the KSUpdateEngine delegate's -engine:running:progress: method.
-// The delegate does not need to implement this method.
 - (void)action:(KSAction *)action
        running:(KSUpdateInfo *)updateInfo
       progress:(NSNumber *)progress;
 
 // Calls the KSUpdateEngine delegate's -engine:finished:wasSuccess:wantsReboot:
-// method. The delegate does not need to implement this method.
+// method.
 - (void)action:(KSAction *)action
       finished:(KSUpdateInfo *)updateInfo
     wasSuccess:(BOOL)wasSuccess
