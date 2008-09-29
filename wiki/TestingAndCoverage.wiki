@@ -215,7 +215,7 @@ you want global access to an object.
 [http://unixjunkie.blogspot.com/2006/07/singleton-smell_25.html Fear the Singleton] just like you would fear any global variable.
 
 Singletons are hard to test because they are a global resource.  One
-test can mess p the Singleton's state for the next test.  It can also be
+test can mess up the Singleton's state for the next test.  It can also be
 hard to get to the underlying functionality of a singleton to test it.
 It's ok to have a class method to give global semantics to something, such
 as NSUserDefaults' +standardUserDefaults, but go ahead and allow multiple
@@ -278,4 +278,3 @@ completely exercise in our tests, enter `/update-engine/C` in the search box
 at the bottom of the !CoverStory window.
 
 http://update-engine.googlecode.com/svn/site/coverage.png
-
