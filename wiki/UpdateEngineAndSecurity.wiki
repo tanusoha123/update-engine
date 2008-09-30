@@ -1,5 +1,5 @@
 #summary How to use Update Engine in a secure manner.
-
+#labels Featured
 
 = Update Engine and Security=
 
