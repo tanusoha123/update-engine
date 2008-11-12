@@ -20,3 +20,6 @@
 
 // Release settings
 #include "../subconfig/Release.xcconfig"
+
+// UpdateEngine settings
+#include "../UpdateEngine.xcconfig"
