@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Created 2008-12-01 -->
+<plist version="1.0">
+<dict>
+  <key>Rules</key>
+  <array>
+    <dict>
+      <key>ProductID</key>
+      <string>EngineRunner</string>
+      <key>Predicate</key>
+      <string>Ticket.version != 'R4'</string>
+      <key>Codebase</key>
+      <string>http://update-engine.googlecode.com/files/EngineRunner-R4.dmg</string>
+      <key>Size</key>
+      <string>142187</string>
+      <key>Hash</key>
+      <string>5fDmmQ1eliv7ySc91QhvDFDENq0=</string>
+    </dict>
+  </array>
+</dict>
+</plist>
