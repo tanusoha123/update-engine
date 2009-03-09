@@ -51,7 +51,7 @@ the install script, and then postinstall script is run last.
 The distinction is academic for most products, you'll just use the
 install script.  If you were installing things as root, you may want
 to run the pre or post install scripts as the console user so that
-they could.  Update Engine doesn't provide this particular
+they could put up user interface.  Update Engine doesn't provide this particular
 functionality, though.
 
 == Script Arguments and Environment Variables ==
@@ -77,7 +77,7 @@ Update Engine will also set environment variables for all of the
 key/value pairs defined in the PlistServerConfiguration file.  For
 example, if the config file for you product has a key/value par with
 "`foo`"="`bar`", Update Engine would set "`KS_foo`" to the value
-"`blah`" in your install scripts' environment.
+"`bar`" in your install scripts' environment.
 
 == Return Codes ==
 
