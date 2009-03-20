@@ -311,3 +311,24 @@ from the pipe in your `-performAction` :
 }}}
 
 
+=Why not NSOperation?=
+
+One good question is "why not use `NSOperation` for this stuff."
+`NSOperation` can be used for much of what the action processor does.
+
+The main reason is that Update Engine needs to support Tiger (Mac OS X 10.4).
+`NSOperation` and friends are 10.5 and later. 
+
+`NSOperation`s don't have a pipe concept.  We would need to add that on top of
+`NSOperations`.  Not difficult, but would be extra work.  The operations are
+executed sequentially, so it would be a little extra work to set up the
+proper operation dependencies before adding them to the operation queue.
+
+The last reason is that that the action processor does not need to use
+a new thread for its operations since the majority of the work done is
+either network-related (asynchronous, runloop based), or very fast (like the
+"Actions" sample image URL filter).  To get non-threaded operations,
+we would need to use "concurrent" `NSOperations` for this, which are
+awkward to implement, and we would need to implement the operation's
+KVO notifications when the operations change state.
+
