@@ -3,14 +3,13 @@
 
 =The Update Engine Action System=
 
-Writing and
-comprehending sequential programs of the form `do_A()`, then `do_B()`,
-then `do_C()` is generally very easy.  You can simply look in one place
-in the source code and see exactly what's supposed to be
-happening. It's clear that `do_C()` is run after `do_B()`, which itself is
-run after `do_A()` completes. Even if we add a little logic to the flow
-so that `do_C()` only runs if `do_B()` finished successfully, it's
-generally pretty straightforward to understand.
+Writing and comprehending sequential programs of the form `do_A()`,
+then `do_B()`, then `do_C()` is generally very easy.  You can simply
+look in one place in the source code and see exactly what's supposed
+to be happening. It's clear that `do_C()` is run after `do_B()`, which
+itself is run after `do_A()` completes. Even if we add a little logic
+to the flow so that `do_C()` only runs if `do_B()` finished
+successfully, it's generally pretty straightforward to understand.
 
 You typically loose this simplicity and clarity when using
 asynchronous tasks - there is typically no one place in the source
@@ -48,7 +47,7 @@ http://update-engine.googlecode.com/svn/site/action-processor-overview.png
 
 
 Actions may communicate with one another using
-`KSActionPipes`. `KSActionPipes` are analogous to tyipcal Unix pipes,
+`KSActionPipes`. `KSActionPipes` are analogous to typical Unix pipes,
 except that `KSActionPipes` pass objects rather than using a simple
 stream of bytes.  Pipes allow multiple actions to work together to
 accomplish a greater task. For example, a task for downloading a file
@@ -112,7 +111,7 @@ high-level actions in more detail.
 
 The `KSCheckAction` class takes the array of tickets from its input,
 groups them by the server they need to talk to, and then creates one
-`KSUpdateCheckAction` for each server backend that needs to be
+`KSUpdateCheckAction` for each server back-end that needs to be
 contacted. It will then run all of these subactions using its own,
 internal, action processor. The `KSCheckAction` itself is not finished
 until all of its subactions are finished. Once that happens,
@@ -125,7 +124,7 @@ http://update-engine.googlecode.com/svn/site/action-processor-check.png
 The KSUpdateCheck subactions will communicate with server
 backends to determine what software (if any) needs to be
 updated. However, we wanted to keep the design flexible enough so that we
-could change backends.  For example, Update Engine ships with KSPlistServer,
+could change back-ends.  For example, Update Engine ships with KSPlistServer,
 which is a different server protocol than what is used internally at Google.
 Update Engine users are also welcome to write their own server subclasses
 to satisfy their individual needs.
@@ -133,7 +132,7 @@ to satisfy their individual needs.
 `KSCheckActions` use two primary abstractions when dealing with
 server backends: `KSServer` and `KSUpdateCheckAction`. `KSServer` is an
 abstract base class whose subclasses encapsulate all of the knowledge
-about a specific instance of a "Update Engine backend
+about a specific instance of a "Update Engine back-end
 server". Concrete instances of this class will contain all of the
 knowledge specific to a particular type of server, as well as a URL
 identifying a particular instance of the server. This class will
@@ -147,7 +146,7 @@ and it will then handle the HTTP(S) communication with the server, and
 coordinate with the given `KSServer` instance to create
 `KSUpdateActions` from the server's response. The `KSUpdateCheckAction`
 will do HTTP(S) communication using `GDataHTTPFetcher`, so it will
-automatically have backoff and retry logic.
+automatically have back off and retry logic.
 
 
 ==The Prefetch Action==
@@ -210,3 +209,105 @@ we've discussed so far. Note that actions are processed from left to
 right.
 
 http://update-engine.googlecode.com/svn/site/action-processor-complete.png
+
+
+=Writing Your Own Actions=
+
+You're not limited to the action subclasses provided by Update Engine.
+You're welcome to create your own `KSAction` subclasses and operate your
+own `KSActonProcessors`.
+
+Update Engine includes the "Actions" sample which uses `KSAction` subclasses
+for downloading a set of image files and displays them in an `NSTableView`, so
+you can see some custom actions in action.
+
+==Subclassing KSAction==
+
+There's only two things you must do when subclassing `KSAction`: perform the
+action, and then let the action processor know when you've finished.
+
+
+===Perform Action===
+
+The first thing to do is override `-performAction`.  This is where you perform
+your work, whether it's something asynchronous like fetching
+something over the internet:
+
+{{{
+- (void)performAction {
+  // Kick off an HTTP fetch for the catalog.
+  NSURLRequest *request = [NSURLRequest requestWithURL:catalogURL_];
+  httpFetcher_ = [[GDataHTTPFetcher alloc] initWithRequest:request];
+  [httpFetcher_ beginFetchWithDelegate:self
+                     didFinishSelector:@selector(fetcher:epicWinWithData:)
+                       didFailSelector:@selector(fetcher:epicFailWithError:)];
+
+}  // performAction
+}}}
+
+or performing a synchronous processing action:
+
+{{{
+- (void)performAction {
+  // Pick up the array of url strings from the previous stage in the pipeline.
+  NSArray *imageURLStrings = [[self inPipe] contents];
+
+  // If we have a predicte, filter the incoming array.
+  NSArray *filteredURLStrings;
+  if (filterPredicate_) {
+    filteredURLStrings =
+      [imageURLStrings filteredArrayUsingPredicate:filterPredicate_];
+  } else {
+    filteredURLStrings = imageURLStrings;
+  }
+
+  // Send the results to the next action in the chain.
+  [[self outPipe] setContents:filteredURLStrings];
+
+  // All done!
+  [[self processor] finishedProcessing:self successfully:YES];
+
+}  // performAction
+}}}
+
+===Finished Processing===
+
+You need to tell the action processor when you've completed your action
+by calling `-finishedProcessing:successfully:`
+
+{{{
+[[self processor] finishedProcessing:self successfully:YES];
+}}}
+
+This tells the action processor that it is time to move on to the next action.
+
+
+==Using Pipes==
+
+Recall that `KSActionPipe` is used to connect actions to each other.
+Before you add actions connected by a pipe to an action processor, you
+need to hook up the pipe:
+
+{{{
+  UECatalogLoaderAction *catalogLoader = ...;
+  UECatalogFilterAction *filter = ...;
+
+  [KSActionPipe bondFrom:catalogLoader to:filter];
+}}}
+
+Then, in your first action subclass (the catalogLoader in this case), before
+you tell your action processor that you have `-finishedProcessing:`, you
+put the object into the pipe that you want the other action to find:
+
+{{{
+  [[self outPipe] setContents:urlStrings];
+}}}
+
+In your second action subclass (the filter in this case), you read
+from the pipe in your `-performAction` :
+
+{{{
+  NSArray *imageURLStrings = [[self inPipe] contents];
+}}}
+
+
