@@ -1,4 +1,4 @@
-// Copyright 2008 Google Inc.
+// Copyright 2009 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifdef __OBJC__
+// UEPostMessage() posts a string as a notification.  This allows for
+// easy logging to the UI.
 
-  // Don't need GDATA HTTPFetcher's payload logging support.
-  #define STRIP_GDATA_FETCH_LOGGING 1
+#import <Foundation/Foundation.h>
 
-  #import <Foundation/Foundation.h>
-  #import "GTMLogger.h"
+// Notification posted by UEPostMessage().
+#define kUEMessageNotification @"UE Message Notification"
 
-  // Define _GTMDevLog messages to show up as GTMLoggerInfo calls.
-  #define _GTMDevLog GTMLoggerInfo
-  #import "GTMDefines.h"
+// Key in the info dictionary to get the actual message text.
+#define kUEMessageKey @"UE Message Key"
 
-#endif
+void UEPostMessage(NSString *message, ...);
