@@ -1,4 +1,4 @@
-// Copyright 2008 Google Inc.
+// Copyright 2009 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifdef __OBJC__
+#import <Foundation/Foundation.h>
 
-  // Don't need GDATA HTTPFetcher's payload logging support.
-  #define STRIP_GDATA_FETCH_LOGGING 1
+#import "KSAction.h"
 
-  #import <Foundation/Foundation.h>
-  #import "GTMLogger.h"
+@class GDataHTTPFetcher;
 
-  // Define _GTMDevLog messages to show up as GTMLoggerInfo calls.
-  #define _GTMDevLog GTMLoggerInfo
-  #import "GTMDefines.h"
+// UECatalogLoaderAction fetches a catalog from somewhere on the
+// internet.  A catalog is just a plain text list of
+// http://blah.com/fooby/image37.jpg URLs.
+//
+@interface UECatalogLoaderAction : KSAction {
+ @private
+  NSURL *catalogURL_;
+  GDataHTTPFetcher *httpFetcher_;
+}
 
-#endif
+- (id)initWithCatalogURL:(NSURL *)catalogURL;
+
+@end  // UECatalogLoaderAction

@@ -4,6 +4,14 @@ Project site:     http://code.google.com/p/update-engine
 Discussion group: http://groups.google.com/group/update-engine
 
 
+Release 6
+30-March-2009
+
+- Updated Xcode project to 3.1
+- Removed HTTPFetcher logging code to reduce code size
+- Added Actions sample
+
+
 Release 5
 5-March-2009
 
