@@ -72,7 +72,6 @@
 		38132B880EB79DAC008EC2FB /* enginerunner-plist-generator.sh in CopyFiles */ = {isa = PBXBuildFile; fileRef = 38132B860EB79D6A008EC2FB /* enginerunner-plist-generator.sh */; };
 		38132B890EB79DAC008EC2FB /* kshash.sh in CopyFiles */ = {isa = PBXBuildFile; fileRef = 38132B850EB79D6A008EC2FB /* kshash.sh */; };
 		3830F7350EA8FA9700A8D0D3 /* ERSelfUpdateCommand.m in Sources */ = {isa = PBXBuildFile; fileRef = 3830F7340EA8FA9700A8D0D3 /* ERSelfUpdateCommand.m */; };
-		3863C6C90F65B44700560B63 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3863C6C70F65B44700560B63 /* Info.plist */; };
 		3863C6CA0F65B44700560B63 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 3863C6C80F65B44700560B63 /* main.m */; };
 		3863C6CF0F65B45100560B63 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 3863C6CB0F65B45100560B63 /* MainMenu.xib */; };
 		3863C6D00F65B45100560B63 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3863C6CD0F65B45100560B63 /* InfoPlist.strings */; };
@@ -902,21 +901,21 @@
 		3863C6B10F65B40F00560B63 /* Actions */ = {
 			isa = PBXGroup;
 			children = (
-				3863C7170F6821AA00560B63 /* UECatalogDownloadAction.m */,
-				3863C7180F6821AA00560B63 /* UEImageDownloadAction.h */,
-				3863C7190F6821AA00560B63 /* UECatalogDownloadAction.h */,
-				3863C71A0F6821AA00560B63 /* UEImageDownloadAction.m */,
-				3863C7140F680E7400560B63 /* UECatalogFilterAction.m */,
-				3863C7150F680E7400560B63 /* UECatalogFilterAction.h */,
-				3863C6FE0F67027E00560B63 /* UENotifications.m */,
-				3863C6EB0F66F1D100560B63 /* UECatalogLoaderAction.h */,
-				3863C6EC0F66F1D100560B63 /* UECatalogLoaderAction.m */,
 				3863C6E80F66EA7000560B63 /* AppController.h */,
 				3863C6E70F66EA7000560B63 /* AppController.m */,
-				3863C6C70F65B44700560B63 /* Info.plist */,
+				3863C6EB0F66F1D100560B63 /* UECatalogLoaderAction.h */,
+				3863C6EC0F66F1D100560B63 /* UECatalogLoaderAction.m */,
+				3863C7150F680E7400560B63 /* UECatalogFilterAction.h */,
+				3863C7140F680E7400560B63 /* UECatalogFilterAction.m */,
+				3863C7190F6821AA00560B63 /* UECatalogDownloadAction.h */,
+				3863C7170F6821AA00560B63 /* UECatalogDownloadAction.m */,
+				3863C7180F6821AA00560B63 /* UEImageDownloadAction.h */,
+				3863C71A0F6821AA00560B63 /* UEImageDownloadAction.m */,
+				3863C6FE0F67027E00560B63 /* UENotifications.m */,
 				3863C6C80F65B44700560B63 /* main.m */,
-				3863C6CB0F65B45100560B63 /* MainMenu.xib */,
+				3863C6C70F65B44700560B63 /* Info.plist */,
 				3863C6CD0F65B45100560B63 /* InfoPlist.strings */,
+				3863C6CB0F65B45100560B63 /* MainMenu.xib */,
 			);
 			name = Actions;
 			sourceTree = "<group>";
@@ -1633,7 +1632,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3863C6C90F65B44700560B63 /* Info.plist in Resources */,
 				3863C6CF0F65B45100560B63 /* MainMenu.xib in Resources */,
 				3863C6D00F65B45100560B63 /* InfoPlist.strings in Resources */,
 			);
