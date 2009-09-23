@@ -81,6 +81,9 @@
 - (IBAction)start:(id)sender {
   // Cancel any previous run.
   [self stopActionProcessor];
+  [images_ removeAllObjects];
+  [names_ removeAllObjects];
+  [statusTextView_ setString:@""];
 
   // Read the various knobs in the UI.
   NSString *catalogURLString = [catalogURLField_ stringValue];
