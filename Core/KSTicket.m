@@ -15,8 +15,22 @@
 #import "KSTicket.h"
 #import "KSExistenceChecker.h"
 
+// When reading a plist file pointed to by a tagpath or brandcode
+// path, don't bother reading files over this size.  Chances are
+// someone is trying to feed us a bad file and forcing a crash.  The
+// largest plist found on my Leopard system was 4 megs.
+#define MAX_DATA_FILE_SIZE (5 * 1024 * 1024)
+
+// If we are getting the tag or brandcode from a path/tag combination,
+// make sure that the tag itself isn't unreasonably huge.
+#define MAX_TAGBRAND_SIZE	1024
+
 
 @implementation KSTicket
+
++ (KSTicket *)ticketWithParameters:(NSDictionary *)args {
+  return [[[self alloc] initWithParameters:args] autorelease];
+}
 
 + (id)ticketWithProductID:(NSString *)productid
                   version:(NSString *)version
@@ -45,7 +59,7 @@
                   version:(NSString *)version
          existenceChecker:(KSExistenceChecker *)xc
                 serverURL:(NSURL *)serverURL
-       trustedTesterToken:(NSString *)trustedTesterToken 
+       trustedTesterToken:(NSString *)trustedTesterToken
              creationDate:(NSDate *)creationDate {
   return [[[self alloc] initWithProductID:productid
                                   version:version
@@ -71,26 +85,70 @@
                                       tag:tag] autorelease];
 }
 
+- (id)initWithParameters:(NSDictionary *)args {
+  if ((self = [super init])) {
+    productID_ = [[args objectForKey:KSTicketProductIDKey] copy];
+    version_ = [[args objectForKey:KSTicketVersionKey] copy];
+    existenceChecker_ =
+      [[args objectForKey:KSTicketExistenceCheckerKey] retain];
+    serverURL_ = [[args objectForKey:KSTicketServerURLKey] retain];
+    trustedTesterToken_ =
+      [[args objectForKey:KSTicketTrustedTesterTokenKey] copy];
+    creationDate_ = [[args objectForKey:KSTicketCreationDateKey] retain];
+    tag_ = [[args objectForKey:KSTicketTagKey] copy];
+    tagPath_ = [[args objectForKey:KSTicketTagPathKey] copy];
+    tagKey_ = [[args objectForKey:KSTicketTagKeyKey] copy];
+    brandPath_ = [[args objectForKey:KSTicketBrandPathKey] copy];
+    brandKey_ = [[args objectForKey:KSTicketBrandKeyKey] copy];
+
+    if (creationDate_ == nil) creationDate_ = [[NSDate alloc] init];
+
+    // Ensure that these ivars are not nil.
+    if (productID_ == nil || version_ == nil ||
+        existenceChecker_ == nil || serverURL_ == nil) {
+      [self release];
+      return nil;
+    }
+  }
+  return self;
+}
+
 - (id)init {
-  return [self initWithProductID:nil
-                         version:nil
-                existenceChecker:nil
-                       serverURL:nil
-              trustedTesterToken:nil
-                    creationDate:nil
-                             tag:nil];
+  return [self initWithParameters:[NSDictionary dictionary]];
+}
+
+- (NSDictionary *)parametersForProductID:(NSString *)productid
+                                 version:(NSString *)version
+                        existenceChecker:(KSExistenceChecker *)xc
+                               serverURL:(NSURL *)serverURL
+                      trustedTesterToken:(NSString *)ttt
+                            creationDate:(NSDate *)creationDate
+                                     tag:(NSString *)tag {
+  NSMutableDictionary *args = [NSMutableDictionary dictionary];
+
+  if (productid) [args setObject:productid forKey:KSTicketProductIDKey];
+  if (version) [args setObject:version forKey:KSTicketVersionKey];
+  if (xc) [args setObject:xc forKey:KSTicketExistenceCheckerKey];
+  if (serverURL) [args setObject:serverURL forKey:KSTicketServerURLKey];
+  if (ttt) [args setObject:ttt forKey:KSTicketTrustedTesterTokenKey];
+  if (creationDate) [args setObject:creationDate
+                             forKey:KSTicketCreationDateKey];
+  if (tag) [args setObject:tag forKey:KSTicketTagKey];
+  return args;
 }
 
 - (id)initWithProductID:(NSString *)productid
                 version:(NSString *)version
        existenceChecker:(KSExistenceChecker *)xc
               serverURL:(NSURL *)serverURL {
-  return [self initWithProductID:productid
-                         version:version
-                existenceChecker:xc
-                       serverURL:serverURL
-              trustedTesterToken:nil
-                    creationDate:nil];
+  NSDictionary *args = [self parametersForProductID:productid
+                                            version:version
+                                   existenceChecker:xc
+                                          serverURL:serverURL
+                                 trustedTesterToken:nil
+                                       creationDate:nil
+                                                tag:nil];
+  return [self initWithParameters:args];
 }
 
 
@@ -98,55 +156,48 @@
                 version:(NSString *)version
        existenceChecker:(KSExistenceChecker *)xc
               serverURL:(NSURL *)serverURL
-     trustedTesterToken:(NSString *)trustedTesterToken {
-  return [self initWithProductID:productid
-                         version:version
-                existenceChecker:xc
-                       serverURL:serverURL
-              trustedTesterToken:trustedTesterToken
-                    creationDate:nil];
+     trustedTesterToken:(NSString *)ttt {
+  NSDictionary *args = [self parametersForProductID:productid
+                                            version:version
+                                   existenceChecker:xc
+                                          serverURL:serverURL
+                                 trustedTesterToken:ttt
+                                       creationDate:nil
+                                                tag:nil];
+  return [self initWithParameters:args];
 }
 
 - (id)initWithProductID:(NSString *)productid
                 version:(NSString *)version
        existenceChecker:(KSExistenceChecker *)xc
               serverURL:(NSURL *)serverURL
-     trustedTesterToken:(NSString *)trustedTesterToken
+     trustedTesterToken:(NSString *)ttt
            creationDate:(NSDate *)creationDate {
-  return [self initWithProductID:productid
-                         version:version
-                existenceChecker:xc
-                       serverURL:serverURL
-              trustedTesterToken:trustedTesterToken
-                    creationDate:creationDate
-                             tag:nil];
+  NSDictionary *args = [self parametersForProductID:productid
+                                            version:version
+                                   existenceChecker:xc
+                                          serverURL:serverURL
+                                 trustedTesterToken:ttt
+                                       creationDate:creationDate
+                                                tag:nil];
+  return [self initWithParameters:args];
 }
 
 - (id)initWithProductID:(NSString *)productid
                 version:(NSString *)version
        existenceChecker:(KSExistenceChecker *)xc
               serverURL:(NSURL *)serverURL
-     trustedTesterToken:(NSString *)trustedTesterToken
+     trustedTesterToken:(NSString *)ttt
            creationDate:(NSDate *)creationDate
                     tag:(NSString *)tag {
-  if ((self = [super init])) {
-    productID_ = [productid copy];
-    version_ = [version copy];
-    existenceChecker_ = [xc retain];
-    serverURL_ = [serverURL retain];
-    creationDate_ = [creationDate retain];
-    trustedTesterToken_ = [trustedTesterToken retain];
-    if (creationDate_ == nil) creationDate_ = [[NSDate alloc] init];
-    tag_ = [tag copy];
-
-    // Ensure that no ivars (other than trustedTesterToken_) are nil.
-    if (productID_ == nil || version_ == nil ||
-        existenceChecker_ == nil || serverURL == nil) {
-      [self release];
-      return nil;
-    }
-  }
-  return self;
+  NSDictionary *args = [self parametersForProductID:productid
+                                            version:version
+                                   existenceChecker:xc
+                                          serverURL:serverURL
+                                 trustedTesterToken:ttt
+                                       creationDate:creationDate
+                                                tag:tag];
+  return [self initWithParameters:args];
 }
 
 - (id)initWithCoder:(NSCoder *)coder {
@@ -164,6 +215,18 @@
     if ([coder containsValueForKey:@"tag"]) {
       tag_ = [[coder decodeObjectForKey:@"tag"] retain];
     }
+    if ([coder containsValueForKey:@"tagPath"]) {
+      tagPath_ = [[coder decodeObjectForKey:@"tagPath"] retain];
+    }
+    if ([coder containsValueForKey:@"tagKey"]) {
+      tagKey_ = [[coder decodeObjectForKey:@"tagKey"] retain];
+    }
+    if ([coder containsValueForKey:@"brandPath"]) {
+      brandPath_ = [[coder decodeObjectForKey:@"brandPath"] retain];
+    }
+    if ([coder containsValueForKey:@"brandKey"]) {
+      brandKey_ = [[coder decodeObjectForKey:@"brandKey"] retain];
+    }
   }
   return self;
 }
@@ -176,6 +239,10 @@
   [creationDate_ release];
   [trustedTesterToken_ release];
   [tag_ release];
+  [tagPath_ release];
+  [tagKey_ release];
+  [brandPath_ release];
+  [brandKey_ release];
   [super dealloc];
 }
 
@@ -187,11 +254,14 @@
   [coder encodeObject:creationDate_ forKey:@"creation_date"];
   if (trustedTesterToken_)
     [coder encodeObject:trustedTesterToken_ forKey:@"trusted_tester_token"];
-  if (tag_)
-    [coder encodeObject:tag_ forKey:@"tag"];
+  if (tag_) [coder encodeObject:tag_ forKey:@"tag"];
+  if (tagPath_) [coder encodeObject:tagPath_ forKey:@"tagPath"];
+  if (tagKey_) [coder encodeObject:tagKey_ forKey:@"tagKey"];
+  if (brandPath_) [coder encodeObject:brandPath_ forKey:@"brandPath"];
+  if (brandKey_) [coder encodeObject:brandKey_ forKey:@"brandKey"];
 }
 
-// trustedTesterToken_ and tag intentionally excluded from hash
+// The trustedTesterToken_, tag, and brand are intentionally excluded from hash.
 - (unsigned)hash {
   return [productID_ hash] + [version_ hash] + [existenceChecker_ hash]
        + [serverURL_ hash] + [creationDate_ hash];
@@ -223,6 +293,14 @@
     return NO;
   if (tag_ && ![tag_ isEqual:[ticket tag]])
     return NO;
+  if (tagPath_ && ![tagPath_ isEqual:[ticket tagPath]])
+    return NO;
+  if (tagKey_ && ![tagKey_ isEqual:[ticket tagKey]])
+    return NO;
+  if (brandPath_ && ![brandPath_ isEqual:[ticket brandPath]])
+    return NO;
+  if (brandKey_ && ![brandKey_ isEqual:[ticket brandKey]])
+    return NO;
 
   return YES;
 }
@@ -237,13 +315,24 @@
   if (tag_) {
     tagString = [NSString stringWithFormat:@"\n\ttag=%@", tag_];
   }
+  NSString *tagPathString = @"";
+  if (tagPath_ && tagKey_) {
+    tagPathString = [NSString stringWithFormat:@"\n\ttagPath=%@\n\ttagKey=%@",
+                              tagPath_, tagKey_];
+  }
+  NSString *brandPathString = @"";
+  if (brandPath_ && brandKey_) {
+    brandPathString =
+      [NSString stringWithFormat:@"\n\tbrandPath=%@\n\tbrandKey=%@",
+                brandPath_, brandKey_];
+  }
 
   return [NSString stringWithFormat:
                    @"<%@:%p\n\tproductID=%@\n\tversion=%@\n\t"
-                   @"xc=%@\n\turl=%@\n\tcreationDate=%@%@%@\n>",
+                   @"xc=%@\n\turl=%@\n\tcreationDate=%@%@%@%@%@\n>",
                    [self class], self, productID_,
                    version_, existenceChecker_, serverURL_, creationDate_,
-                   tttokenString, tagString];
+                   tttokenString, tagString, tagPathString, brandPathString];
 }
 
 - (NSString *)productID {
@@ -272,6 +361,86 @@
 
 - (NSString *)tag {
   return tag_;
+}
+
+- (NSString *)tagPath {
+  return tagPath_;
+}
+
+- (NSString *)tagKey {
+  return tagKey_;
+}
+
+- (id)plistForPath:(NSString *)path {
+  NSString *fullPath = [path stringByExpandingTildeInPath];
+
+  // Make sure it exists.
+  NSFileManager *fm = [NSFileManager defaultManager];
+  if (![fm fileExistsAtPath:fullPath]) return nil;
+
+  // Make sure file is not too big.
+  NSDictionary *fileAttrs = [fm fileAttributesAtPath:fullPath traverseLink:YES];
+  NSNumber *sizeNumber = [fileAttrs valueForKey:NSFileSize];
+  if (sizeNumber == nil) return nil;
+
+  long fileSize = [sizeNumber longValue];
+  if (fileSize > MAX_DATA_FILE_SIZE) return nil;
+
+  // Use NSPropertyListSerialization to read the file.
+  NSData *data = [NSData dataWithContentsOfFile:fullPath];
+  if (data == nil) return nil;
+
+  id plist = [NSPropertyListSerialization
+               propertyListFromData:data
+                   mutabilityOption:NSPropertyListImmutable
+                             format:NULL
+                   errorDescription:NULL];
+
+  if (![plist isKindOfClass:[NSDictionary class]]) return nil;
+
+  return plist;
+}
+
+- (NSString *)determineTag {
+  NSString *tag = tag_;
+
+  if (tagPath_ && tagKey_) {
+    id plist = [self plistForPath:tagPath_];
+    if (plist) {
+      tag = [plist objectForKey:tagKey_];
+      // Only strings allowed.
+      if (![tag isKindOfClass:[NSString class]]) tag = nil;
+      // Empty string means no tag.
+      if ([tag isEqualToString:@""]) tag = nil;
+      if ([tag length] > MAX_TAGBRAND_SIZE) tag = nil;
+    }
+  }
+  return tag;
+}
+
+- (NSString *)brandPath {
+  return brandPath_;
+}
+
+- (NSString *)brandKey {
+  return brandKey_;
+}
+
+- (NSString *)determineBrand {
+  NSString *brand = nil;
+
+  if (brandPath_ && brandKey_) {
+    id plist = [self plistForPath:brandPath_];
+    if (plist) {
+      brand = [plist objectForKey:brandKey_];
+      // Only strings allowed.
+      if (![brand isKindOfClass:[NSString class]]) brand = nil;
+      // Empty string means no brand.
+      if ([brand isEqualToString:@""]) brand = nil;
+      if ([brand length] > MAX_TAGBRAND_SIZE) brand = nil;
+    }
+  }
+  return brand;
 }
 
 @end

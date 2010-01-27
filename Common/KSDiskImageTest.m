@@ -105,13 +105,20 @@
   STAssertFalse([di hasLicense], nil);
 }
 
-- (void)runMountTestsWithMountPoint:(NSString *)mp {
+- (void)runMountTestsWithMountPoint:(NSString *)mp
+                          browsable:(BOOL)browsable {
   KSDiskImage *di = [KSDiskImage diskImageWithPath:basicDmgPath_];
   STAssertNotNil(di, nil);
   
   STAssertNil([di mountPoint], nil);
   
-  NSString *mountPoint = [di mount:mp];
+  NSString *mountPoint;
+  if (browsable) {
+    mountPoint = [di mountBrowsable:mp];
+  } else {
+    mountPoint = [di mount:mp];
+  }
+
   STAssertNotNil(mountPoint, nil);
   STAssertTrue([di isMounted], nil);
   
@@ -129,8 +136,10 @@
 }
 
 - (void)testMounting {
-  [self runMountTestsWithMountPoint:nil];
-  [self runMountTestsWithMountPoint:testMountPoint_];
+  [self runMountTestsWithMountPoint:nil browsable:NO];
+  [self runMountTestsWithMountPoint:testMountPoint_ browsable:NO];
+  [self runMountTestsWithMountPoint:nil browsable:YES];
+  [self runMountTestsWithMountPoint:testMountPoint_ browsable:YES];
 }
 
 - (void)testHDIUtilTaskCreation {

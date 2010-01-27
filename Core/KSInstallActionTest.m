@@ -28,6 +28,7 @@
   NSString *failureDMGPath_;
   NSString *tryAgainDMGPath_;
   NSString *envVarDMGPath_;
+  NSString *stderrDMGPath_;
 }
 @end
 
@@ -35,6 +36,24 @@
 @interface KSInstallAction (Friend)
 - (NSString *)mountPoint;
 - (NSMutableDictionary *)environment;
+@end
+
+// Log Writer to make sure that strings we expect to be logged actually get
+// logged, in the correct order.
+@interface ExpectLogWriter : NSObject <GTMLogWriter> {
+  NSArray *expectedStrings_;
+  int currentIndex_;
+}
+
+// Initialize a new log writer.  |xstrings| is an array of strings that
+// are expected to be found in the stuff that's logged.
+- (id)initWithExpectedStrings:(NSArray *)xstrings;
+
+// Verifies that the expected strings were found, in the correct order.
+// That is, the first string was seen.  Then once seen, the next one is
+// looked for.
+// Returns YES if all of the expected strings were seen, NO otherwise.
+- (BOOL)verify;
 @end
 
 
@@ -91,20 +110,19 @@
 
   successDMGPath_ = [[mainBundle pathForResource:@"Test-SUCCESS"
                                           ofType:@"dmg"] retain];
-
   failureDMGPath_ = [[mainBundle pathForResource:@"Test-FAILURE"
                                           ofType:@"dmg"] retain];
-
   tryAgainDMGPath_ = [[mainBundle pathForResource:@"Test-TRYAGAIN"
                                            ofType:@"dmg"] retain];
-
   envVarDMGPath_ = [[mainBundle pathForResource:@"Test-ENVVAR"
                                            ofType:@"dmg"] retain];
-
+  stderrDMGPath_ = [[mainBundle pathForResource:@"Test-STDERR"
+                                           ofType:@"dmg"] retain];
   STAssertNotNil(successDMGPath_, nil);
   STAssertNotNil(failureDMGPath_, nil);
   STAssertNotNil(tryAgainDMGPath_, nil);
   STAssertNotNil(envVarDMGPath_, nil);
+  STAssertNotNil(stderrDMGPath_, nil);
 
   // Make sure we're always using the default script prefix
   [KSInstallAction setInstallScriptPrefix:nil];
@@ -114,6 +132,8 @@
   [successDMGPath_ release];
   [failureDMGPath_ release];
   [tryAgainDMGPath_ release];
+  [envVarDMGPath_ release];
+  [stderrDMGPath_ release];
 }
 
 - (void)testScriptPrefix {
@@ -269,7 +289,7 @@
   STAssertTrue(rc != 0, nil);
 }
 
-- (void)testWithNonExistantPath {
+- (void)testWithNonExistentPath {
   id<KSCommandRunner> runner = [KSTaskCommandRunner commandRunner];
   STAssertNotNil(runner, nil);
 
@@ -478,6 +498,73 @@
                        @"12345678901234567890123456789012345678901234567890"  // 50
                        @"-l7HuEd_xMLeYU+ZmWvUsHyZTHpE=", nil);  // realHash
                                                                 // s,/,_,g
+}
+
+- (void)testStderrLogging {
+  // These strings are printed to stderr from the install scripts.
+  NSArray *expectedStrings =
+    [NSArray arrayWithObjects:@"preinstall to stderr", @"install to stderr",
+             @"postinstall to stderr", nil];
+
+  // Install our intercepting log writer.
+  ExpectLogWriter *expectWriter =
+    [[ExpectLogWriter alloc] initWithExpectedStrings:expectedStrings];
+  id logger = [GTMLogger sharedLogger];
+  id<GTMLogWriter> originalWriter = [logger writer];
+  [logger setWriter:expectWriter];
+
+  // Run the "update"
+  id<KSCommandRunner> runner = [KSTaskCommandRunner commandRunner];
+  STAssertNotNil(runner, nil);
+
+  KSInstallAction *action = nil;
+  action = [KSInstallAction actionWithDMGPath:stderrDMGPath_
+                                       runner:runner
+                                userInitiated:NO];
+  STAssertNotNil(action, nil);
+
+  KSActionProcessor *ap = [[[KSActionProcessor alloc] init] autorelease];
+  STAssertNotNil(ap, nil);
+
+  [ap enqueueAction:action];
+  [ap startProcessing];  // Runs the whole action because our action is sync.
+
+  STAssertFalse([action isRunning], nil);
+
+  // Make sure we saw what we were expecting.
+  STAssertTrue([expectWriter verify], nil);
+
+  // Restore the original log writer.
+  [logger setWriter:originalWriter];
+}
+
+@end
+
+
+@implementation ExpectLogWriter
+
+- (id)initWithExpectedStrings:(NSArray *)xstrings {
+  if ((self = [super init])) {
+    expectedStrings_ = [xstrings retain];
+  }
+  return self;
+}
+
+- (void)dealloc {
+  [expectedStrings_ release];
+  [super dealloc];
+}
+
+- (void)logMessage:(NSString *)msg level:(GTMLoggerLevel)level {
+  if (currentIndex_ < [expectedStrings_ count]) {
+    NSRange range =
+      [msg rangeOfString:[expectedStrings_ objectAtIndex:currentIndex_]];
+    if (range.location != NSNotFound) currentIndex_++;
+  }
+}
+
+- (BOOL)verify {
+  return currentIndex_ == [expectedStrings_ count];
 }
 
 @end

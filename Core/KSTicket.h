@@ -14,9 +14,23 @@
 
 #import <Foundation/Foundation.h>
 
+// Keys for the parameters dictionary.  The values should be an NSString unless
+// otherwise noted.
+#define KSTicketProductIDKey          @"ProductID"
+#define KSTicketVersionKey            @"Version"
+#define KSTicketExistenceCheckerKey   @"ExistenceChecker"  // KSExistenceChecker
+#define KSTicketServerURLKey          @"URL"               // NSURL
+#define KSTicketTrustedTesterTokenKey @"TTToken"
+#define KSTicketCreationDateKey       @"CreationDate"      // NSDate
+#define KSTicketTagKey                @"Tag"
+#define KSTicketTagPathKey            @"TagPath"
+#define KSTicketTagKeyKey             @"TagKey"
+#define KSTicketBrandPathKey          @"BrandPath"
+#define KSTicketBrandKeyKey           @"BrandKey"
+
 @class KSExistenceChecker;
 
-// POD object that encapsulates information that an application provides when
+// Object that encapsulates information that an application provides when
 // "registering" with UpdateEngine. Tickets are a central part of UpdateEngine.
 // UpdateEngine maintains one ticket for each registered application. Tickets
 // are how UpdateEngine knows what's installed.
@@ -36,7 +50,15 @@
   NSDate *creationDate_;
   NSString *trustedTesterToken_;
   NSString *tag_;
+  NSString *tagPath_;
+  NSString *tagKey_;
+  NSString *brandPath_;
+  NSString *brandKey_;
 }
+
+// Returns an autorelased KSTicket instance initialized with the
+// values contained in the parameter directory.
++ (KSTicket *)ticketWithParameters:(NSDictionary *)args;
 
 // Returns an autoreleased KSTicket instance initialized with the specified
 // arguments. All arguments are required; if any are nil, then nil is returned.
@@ -84,6 +106,10 @@
              creationDate:(NSDate *)creationDate
                       tag:(NSString *)tag;
 
+// Designated initializer.  Returns a KSTicket initialized with the
+// specified argument directory.
+- (id)initWithParameters:(NSDictionary *)args;
+
 // Returns a KSTicket initialized with the specified arguments. All
 // arguments are required; if any are nil, then nil is returned.
 - (id)initWithProductID:(NSString *)productid
@@ -113,7 +139,7 @@
      trustedTesterToken:(NSString *)trustedTesterToken
            creationDate:(NSDate *)creationDate;
 
-// Designated initializer. Returns a KSTicket initialized with the
+// Returns a KSTicket initialized with the
 // specified arguments, also allowing a trusted tester token,
 // a creation date, and a tag.  All arguments other than the trusted tester
 // token, creation date, and tag are required; if any are nil, then nil is
@@ -154,5 +180,31 @@
 
 // Returns the tag, or nil if the ticket does not have one.
 - (NSString *)tag;
+
+// Returns the tag path, or nil if the ticket does not have one.
+- (NSString *)tagPath;
+
+// Returns the tag key, or nil if the ticket does not have one.
+- (NSString *)tagKey;
+
+// Uses -tag, -tagPath, and -tagKey to determine what the ticket's tag is.
+// If -tagPath is not-nil, and points to a valid plist file, look up
+// a value with the -tagKey.  If that exists, its description is returned.
+// If -tagPath is not-nil, and points to an invalid plist file, returns the
+// value of -tag.
+// If there is no tagPath, returns the value of -tag.
+- (NSString *)determineTag;
+
+// Returns the brand path, or nil if the ticket does not have one.
+- (NSString *)brandPath;
+
+// Returns the brand key, or nil if the ticket does not have one.
+- (NSString *)brandKey;
+
+// Uses -brandPath and -brandKey to determine what the ticket's brand code is.
+// If -brandPath is not-nil, and points to a valid plist file, look up
+// a value using the -brandKey.  If that exists, its description is returned.
+// Returns nil if there is no brand code.
+- (NSString *)determineBrand;
 
 @end

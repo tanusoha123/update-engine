@@ -37,16 +37,24 @@
 //            NSString.  This **pointer gets an NSString assigned
 //            to it, which then causes DO to crash deep in its guts
 //            on the client side trying to return the value.
-
+//   stdError - returns text emitted from standard error.  Like for output,
+//              don't pass nil.
 //
 // Returns:
-// The return code is the return code from the command, and |output| will be
-// filled in with the commands output if specified.
+//   The return code is the return code from the command, and |output| will be
+//   filled in with the command's output.  |stderror| will be filled in with 
+//   the command's standard error.
+- (int)runCommand:(NSString *)path
+         withArgs:(NSArray *)args
+      environment:(NSDictionary *)env
+           output:(NSString **)output
+         stdError:(NSString **)stderror;
+
+// Simpler version that doesn't return standard error.
 - (int)runCommand:(NSString *)path
          withArgs:(NSArray *)args
       environment:(NSDictionary *)env
            output:(NSString **)output;
-
 @end
 
 

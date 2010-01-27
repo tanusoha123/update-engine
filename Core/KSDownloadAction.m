@@ -117,6 +117,11 @@ static void MarkFileDescriptorsCloseOnExec(void) {
 
 @implementation KSDownloadAction
 
++ (mode_t)filePosixPermissionsForPath:(GTMPath *)path {
+  mode_t filePerms = [[path attributes] filePosixPermissions];
+  return filePerms;
+}
+
 + (NSString *)defaultDownloadDirectory {
   short domain = geteuid() == 0 ? kLocalDomain : kUserDomain;
   NSBundle *bundle = [NSBundle bundleForClass:[KSDownloadAction class]];
@@ -133,9 +138,12 @@ static void MarkFileDescriptorsCloseOnExec(void) {
                          createDirectoryName:name mode:0700]
                         createDirectoryName:@"Downloads" mode:0700];
 
-  // This mode is important. Make sure it's correct before continuing.
-  if ([[downloads attributes] filePosixPermissions] != 0700) {
-    GTMLoggerError(@"Bad mode on %@, can't use", downloads);
+  // This mode is important.  We don't want another user to be able to change
+  // the contents of the directory.  It's OK if another user reads it, so
+  // make sure it's writable by only us.
+  mode_t filePerms = [self filePosixPermissionsForPath:downloads];
+  if ((filePerms & (S_IWGRP | S_IWOTH)) != 0) {  // no W for group/other
+    GTMLoggerError(@"Bad mode %d on %@, can't use", filePerms, downloads);
     return nil;
   }
 

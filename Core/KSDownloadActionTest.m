@@ -21,6 +21,28 @@
 #import <unistd.h>
 #import <sys/utsname.h>
 
+// Action class where we can control the return value from
+// +filePosixPermissionsForPath, to make sure that +defaultDownloadDirectory
+// does the right thing in the face of different directory permissions.
+@interface KSDownloadDirectoryPermAction : KSDownloadAction
++ (void)setPermissions:(mode_t)permissions;
+@end
+
+@class GTMPath;
+@implementation KSDownloadDirectoryPermAction
+
+static mode_t g_permissions;
+
++ (void)setPermissions:(mode_t)permissions {
+  g_permissions = permissions;
+}
+
++ (mode_t)filePosixPermissionsForPath:(GTMPath *)path {
+  return g_permissions;
+}
+
+@end
+
 
 @interface KSDownloadActionTest : SenTestCase {
  @private
@@ -29,12 +51,12 @@
 @end
 
 
-// !!!internal knowledge!!!
-@interface KSDownloadAction (PrivateMethods)
+@interface KSDownloadAction (TestingFriends)
 - (NSString *)ksurlDirectoryName;
 - (NSString *)ksurlValidatedDirectory;
 - (NSString *)ksurlPath;
 - (void)markProgress:(float)progress;
++ (NSString *)defaultDownloadDirectory;
 @end
 
 // ----------------------------------------------------------------
@@ -524,6 +546,39 @@
     last = [num floatValue];
   }
   STAssertTrue(last <= 1.0, nil);
+}
+
+- (void)testDefaultDownloadDirectoryPermissions {
+  NSFileManager *fm = [NSFileManager defaultManager];
+  NSString *path = [KSDownloadAction defaultDownloadDirectory];
+  STAssertNotNil(path, nil);
+
+  // Make sure the default used is sane.
+  NSDictionary *attrs = [fm fileAttributesAtPath:path
+                                    traverseLink:YES];
+  mode_t filePerms = [attrs filePosixPermissions];
+  STAssertTrue(filePerms & S_IRWXU, nil);  // RWX by the owner.
+  STAssertFalse(filePerms & (S_IWGRP | S_IWOTH), nil);  // Others can't write.
+
+  // These should all succeed
+  [KSDownloadDirectoryPermAction setPermissions:0700];  // rwx------
+  STAssertNotNil([KSDownloadDirectoryPermAction defaultDownloadDirectory], nil);
+
+  [KSDownloadDirectoryPermAction setPermissions:0750];  // rwxr-x---
+  STAssertNotNil([KSDownloadDirectoryPermAction defaultDownloadDirectory], nil);
+
+  [KSDownloadDirectoryPermAction setPermissions:0755];  // rwxr-xr-x
+  STAssertNotNil([KSDownloadDirectoryPermAction defaultDownloadDirectory], nil);
+
+  // These should fail because non-owners can write.
+  [KSDownloadDirectoryPermAction setPermissions:0775];  // rwxrwxr-w
+  STAssertNil([KSDownloadDirectoryPermAction defaultDownloadDirectory], nil);
+
+  [KSDownloadDirectoryPermAction setPermissions:0757];  // rwxr-wrwx
+  STAssertNil([KSDownloadDirectoryPermAction defaultDownloadDirectory], nil);
+
+  [KSDownloadDirectoryPermAction setPermissions:0766];  // rwxrw-rw-
+  STAssertNil([KSDownloadDirectoryPermAction defaultDownloadDirectory], nil);
 }
 
 
