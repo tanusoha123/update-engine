@@ -25,6 +25,11 @@
 #define kUpdateEngineIsMachine           @"IsMachine"
 #define kUpdateEngineProductStats        @"ProductStats"   // productID -> dict
 #define kUpdateEngineUserInitiated       @"UserInitiated"  // BOOL in NSNumber
+// The identity to use in server requests (if the server class supports it).
+// Default is server-defined.
+#define kUpdateEngineIdentity            @"Identity"
+// NSArray of NSStrings.
+#define kUpdateEngineAllowedSubdomains   @"AllowedSubdomains"
 
 // Product stat dictionary keys.
 #define kUpdateEngineProductStatsActive  @"Active"  // BOOL in NSNumber

@@ -64,13 +64,22 @@
   KSExistenceChecker *xc = [KSExistenceChecker falseChecker];
   NSURL *url = [NSURL URLWithString:@"http://www.google.com"];
   NSDate *cd = [NSDate dateWithTimeIntervalSinceNow:12345.67];
-  t1 = [KSTicket ticketWithProductID:@"{GUID}"
-                             version:@"1.1"
-                    existenceChecker:xc
-                           serverURL:url
-                  trustedTesterToken:@"ttoken"
-                        creationDate:cd
-                                 tag:@"ttaggen"];
+  NSMutableDictionary *args =
+    [NSMutableDictionary dictionaryWithObjectsAndKeys:
+                         @"{GUID}", KSTicketProductIDKey,
+                         @"1.1", KSTicketVersionKey,
+                         xc, KSTicketExistenceCheckerKey,
+                         url, KSTicketServerURLKey,
+                         cd, KSTicketCreationDateKey,
+                         @"tttoken", KSTicketTrustedTesterTokenKey,
+                         @"ttaggen", KSTicketTagKey,
+                         @"path", KSTicketTagPathKey,
+                         @"key", KSTicketTagKeyKey,
+                         @"brandpath", KSTicketBrandPathKey,
+                         @"brandkey", KSTicketBrandKeyKey,
+                         nil];
+
+  t1 = [KSTicket ticketWithParameters:args];
 
   STAssertNotNil(t1, nil);
   STAssertTrue([t1 isEqual:t1], nil);
@@ -82,6 +91,19 @@
   NSData *data = [NSKeyedArchiver archivedDataWithRootObject:t1];
   KSTicket *t2 = [NSKeyedUnarchiver unarchiveObjectWithData:data];
   STAssertNotNil(t2, nil);
+
+  // Make sure t2 has everything it should.
+  STAssertEqualObjects([t2 productID], @"{GUID}", nil);
+  STAssertEqualObjects([t2 version], @"1.1", nil);
+  STAssertEqualObjects([t2 existenceChecker], xc, nil);
+  STAssertEqualObjects([t2 serverURL], url, nil);
+  STAssertEqualObjects([t2 creationDate], cd, nil);
+  STAssertEqualObjects([t2 trustedTesterToken], @"tttoken", nil);
+  STAssertEqualObjects([t2 tag], @"ttaggen", nil);
+  STAssertEqualObjects([t2 tagPath], @"path", nil);
+  STAssertEqualObjects([t2 tagKey], @"key", nil);
+  STAssertEqualObjects([t2 brandPath], @"brandpath", nil);
+  STAssertEqualObjects([t2 brandKey], @"brandkey", nil);
 
   STAssertTrue(t1 != t2, nil);
   STAssertTrue([t1 isEqual:t2], nil);
@@ -120,6 +142,37 @@
                         version:@"1.1"
                existenceChecker:xchecker
                       serverURL:url];
+  STAssertFalse([t1 isEqual:t3], nil);
+
+  // Make sure changing one of TTT, tag, tag path, or tag key renders
+  // the tickets not equal.
+  [args setObject:@"not-tttoken" forKey:KSTicketTrustedTesterTokenKey];
+  t3 = [KSTicket ticketWithParameters:args];
+  STAssertFalse([t1 isEqual:t3], nil);
+
+  [args setObject:@"tttoken" forKey:KSTicketTrustedTesterTokenKey];
+  [args setObject:@"not-ttaggen" forKey:KSTicketTagKey];
+  t3 = [KSTicket ticketWithParameters:args];
+  STAssertFalse([t1 isEqual:t3], nil);
+
+  [args setObject:@"ttaggen" forKey:KSTicketTagKey];
+  [args setObject:@"not-path" forKey:KSTicketTagPathKey];
+  t3 = [KSTicket ticketWithParameters:args];
+  STAssertFalse([t1 isEqual:t3], nil);
+
+  [args setObject:@"path" forKey:KSTicketTagPathKey];
+  [args setObject:@"not-key" forKey:KSTicketTagKeyKey];
+  t3 = [KSTicket ticketWithParameters:args];
+  STAssertFalse([t1 isEqual:t3], nil);
+
+  [args setObject:@"key" forKey:KSTicketTagKeyKey];
+  [args setObject:@"not-brandpath" forKey:KSTicketBrandPathKey];
+  t3 = [KSTicket ticketWithParameters:args];
+  STAssertFalse([t1 isEqual:t3], nil);
+
+  [args setObject:@"brandpath" forKey:KSTicketBrandPathKey];
+  [args setObject:@"not-brandkey" forKey:KSTicketBrandKeyKey];
+  t3 = [KSTicket ticketWithParameters:args];
   STAssertFalse([t1 isEqual:t3], nil);
 }
 
@@ -264,5 +317,411 @@
   STAssertTrue([[v description] rangeOfString:@"hi_mom"].length > 0,
                nil);
 }
+
+- (void)testTicketParameterCreation {
+  KSTicket *t;
+  KSExistenceChecker *xc = [KSExistenceChecker falseChecker];
+  NSURL *url = [NSURL URLWithString:@"http://www.google.com"];
+  NSDictionary *args;
+
+  // Make sure insufficient data results in no ticket.
+  t = [KSTicket ticketWithParameters:nil];
+  STAssertNil(t, nil);
+  t = [KSTicket ticketWithParameters:[NSDictionary dictionary]];
+  STAssertNil(t, nil);
+  t = [[[KSTicket alloc] initWithParameters:nil] autorelease];
+  STAssertNil(t, nil);
+  t = [[[KSTicket alloc] initWithParameters:[NSDictionary dictionary]]
+        autorelease];
+  STAssertNil(t, nil);
+
+  // -testNilArgs covers the combination of required args.  Make sure
+  // that a sampling of missing required args result in a nil object.
+  args = [NSDictionary dictionaryWithObjectsAndKeys:
+                       @"com.hassel.hoff", KSTicketProductIDKey,
+                       @"3.14.15", KSTicketVersionKey,
+                       nil];
+  t = [KSTicket ticketWithParameters:args];
+  STAssertNil(t, nil);
+
+  args = [NSDictionary dictionaryWithObjectsAndKeys:
+                       xc, KSTicketExistenceCheckerKey,
+                       url, KSTicketServerURLKey,
+                       nil];
+  t = [KSTicket ticketWithParameters:args];
+  STAssertNil(t, nil);
+
+  args = [NSDictionary dictionaryWithObjectsAndKeys:
+                       @"bubbles", KSTicketTrustedTesterTokenKey,
+                       [NSDate date], KSTicketCreationDateKey,
+                       @"tag", KSTicketTagKey,
+                       @"path", KSTicketTagPathKey,
+                       @"baby", KSTicketTagKeyKey,
+                       @"brandpath", KSTicketBrandPathKey,
+                       @"brandkey", KSTicketBrandKeyKey,
+                       nil];
+  t = [KSTicket ticketWithParameters:args];
+  STAssertNil(t, nil);
+
+  // Make sure everything set makes it through.
+  NSDate *now = [NSDate date];
+  args = [NSDictionary dictionaryWithObjectsAndKeys:
+                       @"com.hassel.hoff", KSTicketProductIDKey,
+                       @"3.14.15", KSTicketVersionKey,
+                       xc, KSTicketExistenceCheckerKey,
+                       url, KSTicketServerURLKey,
+                       @"ttt", KSTicketTrustedTesterTokenKey,
+                       now, KSTicketCreationDateKey,
+                       @"tagge", KSTicketTagKey,
+                       @"pathe", KSTicketTagPathKey,
+                       @"taggekeye", KSTicketTagKeyKey,
+                       @"brandpathe", KSTicketBrandPathKey,
+                       @"brandekeye", KSTicketBrandKeyKey,
+                       nil];
+  t = [KSTicket ticketWithParameters:args];
+  STAssertNotNil(t, nil);
+  STAssertEqualObjects([t productID], @"com.hassel.hoff", nil);
+  STAssertEqualObjects([t version], @"3.14.15", nil);
+  STAssertEqualObjects([t existenceChecker], xc, nil);
+  STAssertEqualObjects([t serverURL], url, nil);
+  STAssertEqualObjects([t trustedTesterToken], @"ttt", nil);
+  STAssertEqualObjects([t creationDate], now, nil);
+  STAssertEqualObjects([t tag], @"tagge", nil);
+  STAssertEqualObjects([t tagPath], @"pathe", nil);
+  STAssertEqualObjects([t tagKey], @"taggekeye", nil);
+  STAssertEqualObjects([t brandPath], @"brandpathe", nil);
+  STAssertEqualObjects([t brandKey], @"brandekeye", nil);
+}
+
+- (void)testTagPathAccessors {
+  KSTicket *t;
+  KSExistenceChecker *xc = [KSExistenceChecker falseChecker];
+  NSURL *url = [NSURL URLWithString:@"http://www.google.com"];
+  NSDictionary *args;
+
+  args = [NSDictionary dictionaryWithObjectsAndKeys:
+                       @"com.hassel.hoff", KSTicketProductIDKey,
+                       @"3.14.15", KSTicketVersionKey,
+                       xc, KSTicketExistenceCheckerKey,
+                       url, KSTicketServerURLKey,
+                       @"path", KSTicketTagPathKey,
+                       @"key", KSTicketTagKeyKey,
+                       nil];
+  t = [KSTicket ticketWithParameters:args];
+  STAssertEqualObjects([t tagPath], @"path", nil);
+  STAssertEqualObjects([t tagKey], @"key", nil);
+}
+
+- (void)testBrandPathAccessors {
+  KSTicket *t;
+  KSExistenceChecker *xc = [KSExistenceChecker falseChecker];
+  NSURL *url = [NSURL URLWithString:@"http://www.google.com"];
+  NSDictionary *args;
+
+  args = [NSDictionary dictionaryWithObjectsAndKeys:
+                       @"com.hassel.hoff", KSTicketProductIDKey,
+                       @"3.14.15", KSTicketVersionKey,
+                       xc, KSTicketExistenceCheckerKey,
+                       url, KSTicketServerURLKey,
+                       @"tagpath", KSTicketTagPathKey,
+                       @"tagkey", KSTicketTagKeyKey,
+                       @"brandpath", KSTicketBrandPathKey,
+                       @"brandkey", KSTicketBrandKeyKey,
+                       nil];
+  t = [KSTicket ticketWithParameters:args];
+  STAssertEqualObjects([t brandPath], @"brandpath", nil);
+  STAssertEqualObjects([t brandKey], @"brandkey", nil);
+}
+
+- (KSTicket *)ticketWithTagPath:(NSString *)tagPath
+                         tagKey:(NSString *)tagKey
+                            tag:(NSString *)tag
+                      brandPath:(NSString *)brandPath
+                       brandKey:(NSString *)brandKey {
+  KSExistenceChecker *xc = [KSExistenceChecker falseChecker];
+  NSURL *url = [NSURL URLWithString:@"http://www.google.com"];
+
+  NSDictionary *args
+    = [NSDictionary dictionaryWithObjectsAndKeys:
+                    @"com.hassel.hoff", KSTicketProductIDKey,
+                    @"3.14.15", KSTicketVersionKey,
+                    xc, KSTicketExistenceCheckerKey,
+                    url, KSTicketServerURLKey,
+                    tagPath, KSTicketTagPathKey,
+                    tagKey, KSTicketTagKeyKey,
+                    tag, KSTicketTagKey,
+                    brandPath, KSTicketBrandPathKey,
+                    brandKey, KSTicketBrandKeyKey,
+                    nil];
+  KSTicket *t = [KSTicket ticketWithParameters:args];
+  STAssertNotNil(t, nil);
+
+  return t;
+}
+
+- (KSTicket *)ticketWithTagPath:(NSString *)tagPath
+                         tagKey:(NSString *)tagKey
+                            tag:(NSString *)tag {
+  return [self ticketWithTagPath:tagPath
+                          tagKey:tagKey
+                             tag:tag
+                       brandPath:@"noBrandPath"
+                        brandKey:@"noBrandKey"];
+}
+
+- (KSTicket *)ticketWithBrandPath:(NSString *)brandPath
+                         brandKey:(NSString *)brandKey {
+  return [self ticketWithTagPath:@"noTagPath"
+                          tagKey:@"noTagKey"
+                             tag:@"noTag"
+                       brandPath:brandPath
+                        brandKey:brandKey];
+}
+
+- (KSTicket *)ticketForResourceName:(NSString *)name
+                               type:(NSString *)type
+                             tagKey:(NSString *)tagKey
+                                tag:(NSString *)tag {
+  NSBundle *mainBundle = [NSBundle bundleForClass:[self class]];
+  NSString *path = [mainBundle pathForResource:name ofType:type];
+  STAssertNotNil(path, nil);
+
+  return [self ticketWithTagPath:path
+                          tagKey:tagKey
+                             tag:tag
+                       brandPath:@"noBrandPath"
+                        brandKey:@"noBrandKey"];
+}
+
+- (void)testDetermineTagPath {
+  KSTicket *t;
+  NSString *tag;
+
+  // Legitimate file tests - these are all readable plist files, so
+  // the -determinedTag should either be a value from the file, or nil.
+
+  t = [self ticketForResourceName:@"TagPath-success"
+                             type:@"plist"
+                           tagKey:@"Awesomeness"
+                              tag:@"blargle"];
+  tag = [t determineTag];
+  STAssertEqualObjects(tag, @"CowsGoMoo", nil);
+
+  // Binary-format plist should work the same.
+  t = [self ticketForResourceName:@"TagPath-binary-success"
+                             type:@"plist"
+                           tagKey:@"Awesomeness"
+                              tag:@"blargle"];
+  tag = [t determineTag];
+  STAssertEqualObjects(tag, @"CowsGoMoo", nil);
+
+  // This file does not have the Awesomeness key, so should evaulate to nil.
+  t = [self ticketForResourceName:@"TagPath-success"
+                             type:@"plist"
+                           tagKey:@"Awesomeness2"
+                              tag:@"blargle"];
+  tag = [t determineTag];
+  STAssertNil(tag, nil);
+
+  // This tag is huge, > 1K, so should evaluate to nil.
+  t = [self ticketForResourceName:@"TagPath-success"
+                             type:@"plist"
+                           tagKey:@"Hugeitude"
+                              tag:@"blargle"];
+  tag = [t determineTag];
+  STAssertNil(tag, nil);
+
+  // This tag is empty, so the returned tag should be nil.
+  // Empty string == no tag.
+  t = [self ticketForResourceName:@"TagPath-success"
+                             type:@"plist"
+                           tagKey:@"Groovyness"
+                              tag:@"blargle"];
+  tag = [t determineTag];
+  STAssertNil(tag, nil);
+
+  // ServerFailure.plist has an array under "Rules" rather than a
+  // string.  Since the file exists and is a legit plist file, the tag
+  // should not be returned.  The determined tag will be nil because
+  // the key doesn't point to a legitimate value.
+  t = [self ticketForResourceName:@"ServerFailure"
+                             type:@"plist"
+                           tagKey:@"Rules"
+                              tag:@"blargle"];
+  tag = [t determineTag];
+  STAssertNil(tag, nil);
+
+
+  // Invalid files, so -determineTag should use the existing tag value.
+
+  // No file there.
+  t = [self ticketWithTagPath:@"/flongwaffle"
+                       tagKey:@"notthere"
+                          tag:@"blargle"];
+  tag = [t determineTag];
+  STAssertEqualObjects(tag, @"blargle", nil);
+
+
+  // This file is too big (10 meg on leopard, 18 on Sneaux Leopard),
+  // and should be rejected.
+  t = [self ticketWithTagPath:@"/mach_kernel"
+                       tagKey:@"notthere"
+                          tag:@"blargle"];
+  tag = [t determineTag];
+  STAssertEqualObjects(tag, @"blargle", nil);
+
+  // This file is malformed (it's binary, but not even a plist), and
+  // should be rejected without anybody crashing or getting hassled.
+  // The tag should evaluate to "blargle" since the file is bad.
+  t = [self ticketForResourceName:@"TagPath-malformed-failure"
+                             type:@"plist"
+                           tagKey:@"Awesomeness"
+                              tag:@"blargle"];
+  tag = [t determineTag];
+  STAssertEqualObjects(tag, @"blargle", nil);
+
+  t = [self ticketForResourceName:@"ServerFailure"
+                             type:@"plist"
+                           tagKey:@"Rules"
+                              tag:nil];
+  tag = [t determineTag];
+  STAssertNil(tag, nil);
+
+  t = [self ticketWithTagPath:@"/flongwaffle"
+                       tagKey:@"notthere"
+                          tag:nil];
+  tag = [t determineTag];
+  STAssertNil(tag, nil);
+
+  t = [self ticketForResourceName:@"TagPath-malformed-failure"
+                             type:@"plist"
+                           tagKey:@"Awesomeness"
+                              tag:nil];
+  tag = [t determineTag];
+  STAssertNil(tag, nil);
+}
+
+- (void)testTagPathHomeExpansion {
+  // Copy a file to $HOME and make sure tilde expansion works.
+  NSBundle *mainBundle = [NSBundle bundleForClass:[self class]];
+  NSString *path = [mainBundle pathForResource:@"TagPath-success"
+                                        ofType:@"plist"];
+  STAssertNotNil(path, nil);
+  NSFileManager *fm = [NSFileManager defaultManager];
+  NSString *destPath =
+    [NSHomeDirectory()stringByAppendingPathComponent:@"TagPath-success.plist"];
+  [fm copyPath:path toPath:destPath handler:nil];
+
+  if (![fm fileExistsAtPath:destPath]) {
+    // Don't know if Pulse will choke on this.  If so, make a not of it and
+    // then bail out.
+    NSLog(@"Could not copy file to home directory.");
+    return;
+  }
+
+  KSTicket *t = [self ticketWithTagPath:@"~/TagPath-success.plist"
+                                 tagKey:@"Awesomeness"
+                                    tag:@"blargle"];
+  NSString *tag = [t determineTag];
+  STAssertEqualObjects(tag, @"CowsGoMoo", nil);
+
+  [fm removeFileAtPath:destPath handler:nil];
+}
+
+- (KSTicket *)ticketForResourceName:(NSString *)name
+                               type:(NSString *)type
+                           brandKey:(NSString *)brandKey {
+  NSBundle *mainBundle = [NSBundle bundleForClass:[self class]];
+  NSString *path = [mainBundle pathForResource:name ofType:type];
+  STAssertNotNil(path, nil);
+
+  return [self ticketWithTagPath:@"noTagPath"
+                          tagKey:@"noTagKey"
+                             tag:@"noTag"
+                       brandPath:path
+                        brandKey:brandKey];
+}
+
+- (void)testDetermineBrandPath {
+  KSTicket *t;
+  NSString *brand;
+
+  // Legitimate file tests - these are all readable plist files, so
+  // the -determinedBrand should either be a value from the file, or nil.
+  // Use the test files from TagPath, since tags and brands use similar
+  // implementations.
+
+  t = [self ticketForResourceName:@"TagPath-success"
+                             type:@"plist"
+                         brandKey:@"Awesomeness"];
+  brand = [t determineBrand];
+  STAssertEqualObjects(brand, @"CowsGoMoo", nil);
+
+  // Binary-format plist should work the same.
+  t = [self ticketForResourceName:@"TagPath-binary-success"
+                             type:@"plist"
+                         brandKey:@"Awesomeness"];
+  brand = [t determineBrand];
+  STAssertEqualObjects(brand, @"CowsGoMoo", nil);
+
+  // This file does not have the Awesomeness key, so should evaulate to nil.
+  t = [self ticketForResourceName:@"TagPath-success"
+                             type:@"plist"
+                         brandKey:@"Awesomeness2"];
+  brand = [t determineBrand];
+  STAssertNil(brand, nil);
+
+  // This brand is huge, > 1K, so should evaluate to nil.
+  t = [self ticketForResourceName:@"TagPath-success"
+                             type:@"plist"
+                         brandKey:@"Hugeitude"];
+  brand = [t determineBrand];
+  STAssertNil(brand, nil);
+
+  // This brand is empty, so the returned brand should be nil.
+  // Empty string == no brand.
+  t = [self ticketForResourceName:@"TagPath-success"
+                             type:@"plist"
+                         brandKey:@"Groovyness"];
+  brand = [t determineBrand];
+  STAssertNil(brand, nil);
+
+  // ServerFailure.plist has an array under "Rules" rather than a
+  // string.  Since the file exists and is a legit plist file, the brand
+  // should not be returned.  The determined brand will be nil because
+  // the key doesn't point to a legitimate value.
+  t = [self ticketForResourceName:@"ServerFailure"
+                             type:@"plist"
+                         brandKey:@"Rules"];
+  brand = [t determineBrand];
+  STAssertNil(brand, nil);
+
+
+  // Invalid files, so -determineBrand should return nil
+
+  // No file there.
+  t = [self ticketWithBrandPath:@"/flongwaffle"
+                       brandKey:@"notthere"];
+  brand = [t determineBrand];
+  STAssertNil(brand, nil);
+
+
+  // This file is too big (10 meg on leopard, 18 on Sneaux Leopard),
+  // and should be rejected.
+  t = [self ticketWithBrandPath:@"/mach_kernel"
+                       brandKey:@"notthere"];
+  brand = [t determineBrand];
+  STAssertNil(brand, nil);
+
+  // This file is malformed (it's binary, but not even a plist), and
+  // should be rejected without anybody crashing or getting hassled.
+  // The brand should evaluate to "blargle" since the file is bad.
+  t = [self ticketForResourceName:@"TagPath-malformed-failure"
+                             type:@"plist"
+                         brandKey:@"Awesomeness"];
+  brand = [t determineBrand];
+  STAssertNil(brand, nil);
+}
+
 
 @end

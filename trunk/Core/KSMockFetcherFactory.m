@@ -220,7 +220,7 @@
              autorelease];
   } else {
     _GTMDevAssert(0, @"can't decide what to mock");  // COV_NF_LINE
-    return nil;
+    return nil;  // COV_NF_LINE
   }
 }
 

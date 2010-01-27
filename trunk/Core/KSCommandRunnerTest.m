@@ -86,4 +86,29 @@
   STAssertTrue(rc == 1, nil);
 }
 
+- (void)testError {
+  KSTaskCommandRunner *cmd = [KSTaskCommandRunner commandRunner];
+
+  // Successful command should have an empty stderror.
+  int rc = 0;
+  NSString *output;
+  NSString *stderror;
+  rc = [cmd runCommand:@"/bin/ls"
+              withArgs:[NSArray arrayWithObjects:@"-F", @"/tmp", nil]
+           environment:nil
+                output:&output
+              stdError:&stderror];
+  STAssertEquals(rc, 0, nil);
+  STAssertEquals([stderror length], 0u, nil);
+
+  // Unsuccessful command should have stuff in the error
+  rc = [cmd runCommand:@"/bin/ls"
+              withArgs:[NSArray arrayWithObject:@"--fnordbork"]
+           environment:nil
+                output:&output
+              stdError:&stderror];
+  STAssertTrue(rc != 0, nil);
+  STAssertFalse([stderror length] == 0, nil);
+}
+
 @end

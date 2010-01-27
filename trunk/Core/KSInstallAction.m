@@ -146,6 +146,9 @@ static NSString *gInstallScriptPrefix;
   NSString *output1 = nil;
   NSString *output2 = nil;
   NSString *output3 = nil;
+  NSString *error1 = nil;
+  NSString *error2 = nil;
+  NSString *error3 = nil;
 
   NSArray *args = [NSArray arrayWithObject:mountPoint];
   NSMutableDictionary *env = [self environment];
@@ -159,10 +162,17 @@ static NSString *gInstallScriptPrefix;
       rc = [runner_ runCommand:script1
                       withArgs:args
                    environment:env
-                        output:&output1];
+                        output:&output1
+                      stdError:&error1];
     }
     @catch (id ex) {
       GTMLoggerError(@"Caught exception from runner_ (script1): %@", ex);
+    }
+    // It's possible for the script to return a successful return
+    // status even if there was an error, so always log stderr from
+    // the scripts.
+    if ([error1 length] > 0) {
+      GTMLoggerError(@"stderr from preinstall script %@: %@", script1, error1);
     }
     if (rc != KS_INSTALL_SUCCESS) {
       success = NO;
@@ -185,10 +195,14 @@ static NSString *gInstallScriptPrefix;
       rc = [[KSTaskCommandRunner commandRunner] runCommand:script2
                                                   withArgs:args
                                                environment:env
-                                                    output:&output2];
+                                                    output:&output2
+                                                  stdError:&error2];
     }
     @catch (id ex) {
       GTMLoggerError(@"Caught exception from runner_ (script2): %@", ex);
+    }
+    if ([error2 length] > 0) {
+      GTMLoggerError(@"stderr from install script %@: %@", script2, error2);
     }
     if (rc != KS_INSTALL_SUCCESS) {
       success = NO;
@@ -206,10 +220,14 @@ static NSString *gInstallScriptPrefix;
       rc = [runner_ runCommand:script3
                       withArgs:args
                    environment:env
-                        output:&output3];
+                        output:&output3
+                      stdError:&error3];
     }
     @catch (id ex) {
       GTMLoggerError(@"Caught exception from runner_ (script3): %@", ex);
+    }
+    if ([error3 length] > 0) {
+      GTMLoggerError(@"stderr from postinstall script %@: %@", script3, error3);
     }
     if (rc != KS_INSTALL_SUCCESS) {
       success = NO;
@@ -293,17 +311,17 @@ bail_no_unmount:
 // The only trick is that the full mount point must be less than 90 characters
 // (this is a strange Apple limitation). So, we guarantee this by ensuring that
 // the product ID is never more than 50 characters. And since "/Volumes/" is 9
-// characters, and our hashes are 28 characters, we will always end up w/ a 
+// characters, and our hashes are 28 characters, we will always end up w/ a
 // mountpoint less than 90. But just to be sure, we have a GTMLoggerError that
 // will tell us.
 - (NSString *)mountPoint {
   if (updateInfo_ == nil) return nil;  // nil means to use the default value
-  
+
   static const int kMaxProductIDLen = 50;
   NSString *prodid = [updateInfo_ productID];
   if ([prodid length] > kMaxProductIDLen)
     prodid = [prodid substringToIndex:kMaxProductIDLen];
-  
+
   // Since the hash will be used as a path component, we must replace "/" chars
   // with a char that's legal in path component names. We'll use underscores.
   NSMutableString *legalHash = [[[updateInfo_ codeHash]
@@ -321,7 +339,7 @@ bail_no_unmount:
   // MNAMELEN is the max mount point name length (hint: it's 90)
   if ([mountPoint length] >= MNAMELEN)
     GTMLoggerError(@"Oops! mountPoint path is too long (>=90): %@", mountPoint);
-    
+
   return mountPoint;
 }
 

@@ -4,6 +4,27 @@ Project site:     http://code.google.com/p/update-engine
 Discussion group: http://groups.google.com/group/update-engine
 
 
+
+Release 8
+25-Jan-2010
+
+- Now that Omaha (http://code.google.com/p/omaha/) has been
+  open-sourced, we've added the KSOmahaServer class, to demonstrate a
+  more sophisticated server class.
+- Added KSTicketTestBase, for writing unit tests that involve tickets
+  and servers.
+- KSCommandRunner now returns text printed to the command's standard error
+  stream.
+- KSInstallAction prints out the standard error from scripts.
+- Added TagPath to KSTicket, allowing for an indrection to a file (say
+  your application's Info.plist) for determining the tag.
+- Added BrandPath to KSTicket, which lets you specify a brand code to be
+  reported during update checks.
+- Added dictionary-based API for setting ticket parameters.
+- Added tests to cover some uncovered code.
+
+
+
 Release 7
 23-Sep-2009
 

@@ -221,8 +221,7 @@
   
   xc = [KSSpotlightExistenceChecker checkerWithQuery:@"kMDItemDisplayName == 'Safari'"];
   STAssertNotNil(xc, nil);
-  //  STAssertTrue([xc exists], nil);
-  // For whatever reason, this fails on my machine.  Safari is there.
+  STAssertTrue([xc exists], nil);
   
   //
   // Should NOT exist

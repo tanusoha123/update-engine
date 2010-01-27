@@ -45,16 +45,19 @@ static const int kFailure = 1;
 - (int)runCommand:(NSString *)path
          withArgs:(NSArray *)args
       environment:(NSDictionary *)env
-           output:(NSString **)output {
+           output:(NSString **)output
+         stdError:(NSString **)stderror {
   if (path == nil)
     return kFailure;
   
-  NSPipe *pipe = [NSPipe pipe];
+  NSPipe *outPipe = [NSPipe pipe];
+  NSPipe *errorPipe = [NSPipe pipe];
   NSTask *task = [[[NSTask alloc] init] autorelease];
   [task setLaunchPath:path];
   if (args) [task setArguments:args];
   if (env) [task setEnvironment:env];
-  [task setStandardOutput:pipe];
+  [task setStandardOutput:outPipe];
+  [task setStandardError:errorPipe];
 
   // If EUID and UID are not the same, you can run into problems where
   // privileges are lost when shell scripts are executed without a
@@ -79,16 +82,23 @@ static const int kFailure = 1;
   }
   
   if (output) {
-    NSData *outData = [[pipe fileHandleForReading] readDataToEndOfFile];
+    NSData *outData = [[outPipe fileHandleForReading] readDataToEndOfFile];
     NSString *outString = 
     [[[NSString alloc] initWithData:outData
                            encoding:NSUTF8StringEncoding] autorelease];
     *output = outString;
   }
+  if (stderror) {
+    NSData *errorData = [[errorPipe fileHandleForReading] readDataToEndOfFile];
+    NSString *errorString =
+    [[[NSString alloc] initWithData:errorData
+                           encoding:NSUTF8StringEncoding] autorelease];
+    *stderror = errorString;
+  }
   
   // Wait up to 1 hour for the task to complete
   BOOL ok = [task waitUntilExitWithTimeout:3600];
-  
+
   // Restore our saved UID.
   if (eUID == 0) {
     setuid(savedUID);  // COV_NF_LINE
@@ -98,8 +108,21 @@ static const int kFailure = 1;
     [task terminate];  // COV_NF_LINE
     return kFailure;   // COV_NF_LINE
   }
-  
+
   return [task terminationStatus];
+}
+
+- (int)runCommand:(NSString *)path
+         withArgs:(NSArray *)args
+      environment:(NSDictionary *)env
+           output:(NSString **)output {
+  NSString *discard;
+  int result = [self runCommand:path
+                       withArgs:args
+                    environment:env
+                         output:output
+                       stdError:&discard];
+  return result;
 }
 
 @end
