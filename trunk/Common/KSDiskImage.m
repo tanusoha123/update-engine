@@ -183,7 +183,8 @@
   while ((entityDict = [entityEnum nextObject])) {
     NSString *contentHint = [entityDict objectForKey:@"content-hint"];
     if ([contentHint isEqualToString:@"Apple_HFS"] || numSystemEntities == 1) {
-      mountPoint_ = [[entityDict objectForKey:@"mount-point"] retain];
+      mountPoint_ = [[[entityDict objectForKey:@"mount-point"]
+                        stringByStandardizingPath] retain];
       break;
     }
   }

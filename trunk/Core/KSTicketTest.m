@@ -77,6 +77,8 @@
                          @"key", KSTicketTagKeyKey,
                          @"brandpath", KSTicketBrandPathKey,
                          @"brandkey", KSTicketBrandKeyKey,
+                         @"versionpath", KSTicketVersionPathKey,
+                         @"versionkey", KSTicketVersionKeyKey,
                          nil];
 
   t1 = [KSTicket ticketWithParameters:args];
@@ -104,6 +106,8 @@
   STAssertEqualObjects([t2 tagKey], @"key", nil);
   STAssertEqualObjects([t2 brandPath], @"brandpath", nil);
   STAssertEqualObjects([t2 brandKey], @"brandkey", nil);
+  STAssertEqualObjects([t2 versionPath], @"versionpath", nil);
+  STAssertEqualObjects([t2 versionKey], @"versionkey", nil);
 
   STAssertTrue(t1 != t2, nil);
   STAssertTrue([t1 isEqual:t2], nil);
@@ -137,7 +141,8 @@
                       serverURL:[NSURL URLWithString:@"http://unixjunkie.net"]];
   STAssertFalse([t1 isEqual:t3], nil);
 
-  KSExistenceChecker *xchecker = [KSPathExistenceChecker checkerWithPath:@"/tmp"];
+  KSExistenceChecker *xchecker =
+    [KSPathExistenceChecker checkerWithPath:@"/tmp"];
   t3 = [KSTicket ticketWithProductID:@"{GUID}"
                         version:@"1.1"
                existenceChecker:xchecker
@@ -172,6 +177,16 @@
 
   [args setObject:@"brandpath" forKey:KSTicketBrandPathKey];
   [args setObject:@"not-brandkey" forKey:KSTicketBrandKeyKey];
+  t3 = [KSTicket ticketWithParameters:args];
+  STAssertFalse([t1 isEqual:t3], nil);
+
+  [args setObject:@"brandkey" forKey:KSTicketBrandKeyKey];
+  [args setObject:@"not-versionpath" forKey:KSTicketVersionPathKey];
+  t3 = [KSTicket ticketWithParameters:args];
+  STAssertFalse([t1 isEqual:t3], nil);
+
+  [args setObject:@"versionpath" forKey:KSTicketVersionPathKey];
+  [args setObject:@"not-versionkey" forKey:KSTicketVersionKeyKey];
   t3 = [KSTicket ticketWithParameters:args];
   STAssertFalse([t1 isEqual:t3], nil);
 }
@@ -437,22 +452,29 @@
                          tagKey:(NSString *)tagKey
                             tag:(NSString *)tag
                       brandPath:(NSString *)brandPath
-                       brandKey:(NSString *)brandKey {
+                       brandKey:(NSString *)brandKey
+                    versionPath:(NSString *)versionPath
+                     versionKey:(NSString *)versionKey
+                        version:(NSString *)version {
   KSExistenceChecker *xc = [KSExistenceChecker falseChecker];
   NSURL *url = [NSURL URLWithString:@"http://www.google.com"];
 
-  NSDictionary *args
-    = [NSDictionary dictionaryWithObjectsAndKeys:
-                    @"com.hassel.hoff", KSTicketProductIDKey,
-                    @"3.14.15", KSTicketVersionKey,
-                    xc, KSTicketExistenceCheckerKey,
-                    url, KSTicketServerURLKey,
-                    tagPath, KSTicketTagPathKey,
-                    tagKey, KSTicketTagKeyKey,
-                    tag, KSTicketTagKey,
-                    brandPath, KSTicketBrandPathKey,
-                    brandKey, KSTicketBrandKeyKey,
-                    nil];
+  NSMutableDictionary *args
+    = [NSMutableDictionary dictionaryWithObjectsAndKeys:
+                           @"com.hassel.hoff", KSTicketProductIDKey,
+                           xc, KSTicketExistenceCheckerKey,
+                           url, KSTicketServerURLKey,
+                           @"3.14.15", KSTicketVersionKey,
+                           nil];
+  if (tagPath) [args setObject:tagPath forKey:KSTicketTagPathKey];
+  if (tagKey) [args setObject:tagKey forKey: KSTicketTagKeyKey];
+  if (tag) [args setObject:tag forKey:KSTicketTagKey];
+  if (brandPath) [args setObject:brandPath forKey:KSTicketBrandPathKey];
+  if (brandKey) [args setObject:brandKey forKey:KSTicketBrandKeyKey];
+  if (versionPath) [args setObject:versionPath forKey:KSTicketVersionPathKey];
+  if (versionKey) [args setObject:versionKey forKey:KSTicketVersionKeyKey];
+  if (version) [args setObject:version forKey:KSTicketVersionKey];
+
   KSTicket *t = [KSTicket ticketWithParameters:args];
   STAssertNotNil(t, nil);
 
@@ -466,16 +488,35 @@
                           tagKey:tagKey
                              tag:tag
                        brandPath:@"noBrandPath"
-                        brandKey:@"noBrandKey"];
+                        brandKey:@"noBrandKey"
+                     versionPath:nil
+                      versionKey:nil
+                         version:nil];
+}
+
+- (KSTicket *)ticketWithVersionPath:(NSString *)versionPath
+                         versionKey:(NSString *)versionKey
+                            version:(NSString *)version {
+  return [self ticketWithTagPath:nil
+                          tagKey:nil
+                             tag:nil
+                       brandPath:nil
+                        brandKey:nil
+                     versionPath:versionPath
+                      versionKey:versionKey
+                         version:version];
 }
 
 - (KSTicket *)ticketWithBrandPath:(NSString *)brandPath
                          brandKey:(NSString *)brandKey {
-  return [self ticketWithTagPath:@"noTagPath"
-                          tagKey:@"noTagKey"
-                             tag:@"noTag"
+  return [self ticketWithTagPath:nil
+                          tagKey:nil
+                             tag:nil
                        brandPath:brandPath
-                        brandKey:brandKey];
+                        brandKey:brandKey
+                     versionPath:nil
+                      versionKey:nil
+                         version:nil];
 }
 
 - (KSTicket *)ticketForResourceName:(NSString *)name
@@ -489,8 +530,29 @@
   return [self ticketWithTagPath:path
                           tagKey:tagKey
                              tag:tag
-                       brandPath:@"noBrandPath"
-                        brandKey:@"noBrandKey"];
+                       brandPath:nil
+                        brandKey:nil
+                     versionPath:nil
+                      versionKey:nil
+                         version:nil];
+}
+
+- (KSTicket *)ticketForResourceName:(NSString *)name
+                               type:(NSString *)type
+                         versionKey:(NSString *)versionKey
+                            version:(NSString *)version {
+  NSBundle *mainBundle = [NSBundle bundleForClass:[self class]];
+  NSString *path = [mainBundle pathForResource:name ofType:type];
+  STAssertNotNil(path, nil);
+
+  return [self ticketWithTagPath:nil
+                          tagKey:nil
+                             tag:nil
+                       brandPath:nil
+                        brandKey:nil
+                     versionPath:path
+                      versionKey:versionKey
+                         version:version];
 }
 
 - (void)testDetermineTagPath {
@@ -515,7 +577,7 @@
   tag = [t determineTag];
   STAssertEqualObjects(tag, @"CowsGoMoo", nil);
 
-  // This file does not have the Awesomeness key, so should evaulate to nil.
+  // This file does not have the Awesomeness2 key, so should evaulate to nil.
   t = [self ticketForResourceName:@"TagPath-success"
                              type:@"plist"
                            tagKey:@"Awesomeness2"
@@ -635,11 +697,14 @@
   NSString *path = [mainBundle pathForResource:name ofType:type];
   STAssertNotNil(path, nil);
 
-  return [self ticketWithTagPath:@"noTagPath"
-                          tagKey:@"noTagKey"
-                             tag:@"noTag"
+  return [self ticketWithTagPath:nil
+                          tagKey:nil
+                             tag:nil
                        brandPath:path
-                        brandKey:brandKey];
+                        brandKey:brandKey
+                     versionPath:nil
+                      versionKey:nil
+                         version:nil];
 }
 
 - (void)testDetermineBrandPath {
@@ -664,7 +729,7 @@
   brand = [t determineBrand];
   STAssertEqualObjects(brand, @"CowsGoMoo", nil);
 
-  // This file does not have the Awesomeness key, so should evaulate to nil.
+  // This file does not have the Awesomeness2 key, so should evaulate to nil.
   t = [self ticketForResourceName:@"TagPath-success"
                              type:@"plist"
                          brandKey:@"Awesomeness2"];
@@ -723,5 +788,162 @@
   STAssertNil(brand, nil);
 }
 
+- (void)testDetermineVersionPath {
+  KSTicket *t;
+  NSString *version;
+
+  // Legitimate file tests - these are all readable plist files, so
+  // the -determinedVersion should either be a value from the file, or nil.
+
+  t = [self ticketForResourceName:@"TagPath-success"
+                             type:@"plist"
+                       versionKey:@"CFBundleShortVersionString"
+                          version:@"blargle"];
+  version = [t determineVersion];
+  STAssertEqualObjects(version, @"4.0.249.30", nil);
+
+  // Binary-format plist should work the same.
+  t = [self ticketForResourceName:@"TagPath-binary-success"
+                             type:@"plist"
+                       versionKey:@"CFBundleShortVersionString"
+                          version:@"blargle"];
+  version = [t determineVersion];
+  STAssertEqualObjects(version, @"4.0.249.30", nil);
+
+  // This file does not have the Awesomeness2 key, so should evaulate to nil.
+  t = [self ticketForResourceName:@"TagPath-success"
+                             type:@"plist"
+                       versionKey:@"Awesomeness2"
+                          version:@"blargle"];
+  version = [t determineVersion];
+  STAssertEqualObjects(version, @"blargle", nil);
+
+  // This version is huge, > 1K, so should evaluate to nil.
+  t = [self ticketForResourceName:@"TagPath-success"
+                             type:@"plist"
+                       versionKey:@"Hugeitude"
+                          version:@"blargle"];
+  version = [t determineVersion];
+  STAssertEqualObjects(version, @"blargle", nil);
+
+  // This version is empty, so the returned version should be nil.
+  // Empty string == no version.
+  t = [self ticketForResourceName:@"TagPath-success"
+                             type:@"plist"
+                       versionKey:@"Groovyness"
+                          version:@"blargle"];
+  version = [t determineVersion];
+  STAssertEqualObjects(version, @"blargle", nil);
+
+  // ServerFailure.plist has an array under "Rules" rather than a
+  // string.  Since the file exists and is a legit plist file, the version
+  // should not be returned.  The determined version will be nil because
+  // the key doesn't point to a legitimate value.
+  t = [self ticketForResourceName:@"ServerFailure"
+                             type:@"plist"
+                       versionKey:@"Rules"
+                          version:@"blargle"];
+  version = [t determineVersion];
+  STAssertEqualObjects(version, @"blargle", nil);
+
+
+  // Invalid files, so -determineVersion should use the existing version value.
+
+  // No file there.
+  t = [self ticketWithVersionPath:@"/flongwaffle"
+                       versionKey:@"notthere"
+                          version:@"1.2.3.4"];
+  version = [t determineVersion];
+  STAssertEqualObjects(version, @"1.2.3.4", nil);
+
+
+  // This file is too big (10 meg on leopard, 18 on Sneaux Leopard),
+  // and should be rejected.
+  t = [self ticketWithVersionPath:@"/mach_kernel"
+                       versionKey:@"notthere"
+                          version:@"1.2.3.4"];
+  version = [t determineVersion];
+  STAssertEqualObjects(version, @"1.2.3.4", nil);
+
+  // This file is malformed (it's binary, but not even a plist), and
+  // should be rejected without anybody crashing or getting hassled.
+  // The version should evaluate to "blargle" since the file is bad.
+  t = [self ticketForResourceName:@"TagPath-malformed-failure"
+                             type:@"plist"
+                       versionKey:@"CFBundleShortVersionString"
+                          version:@"1.2.3.4"];
+  version = [t determineVersion];
+  STAssertEqualObjects(version, @"1.2.3.4", nil);
+
+  t = [self ticketForResourceName:@"ServerFailure"
+                             type:@"plist"
+                       versionKey:@"Rules"
+                          version:@"1.2.3.4"];
+  version = [t determineVersion];
+  STAssertEqualObjects(version, @"1.2.3.4", nil);
+
+  t = [self ticketWithVersionPath:@"/flongwaffle"
+                       versionKey:@"notthere"
+                          version:@"1.2.3.4"];
+  version = [t determineVersion];
+  STAssertEqualObjects(version, @"1.2.3.4", nil);
+
+  t = [self ticketForResourceName:@"TagPath-malformed-failure"
+                             type:@"plist"
+                       versionKey:@"Awesomeness"
+                          version:@"1.2.3.4"];
+  version = [t determineVersion];
+  STAssertEqualObjects(version, @"1.2.3.4", nil);
+}
+
+const char *templateDescription = "<KSTicket:%p\n"
+"	productID=com.hassel.hoff\n"
+"	version=3.14.15\n"
+"	xc=<KSPathExistenceChecker:%p path=/attack/of/the/clowns>\n"
+"	url=http://www.google.com\n"
+"	creationDate=%@\n"
+"	trustedTesterToken=monkeys\n"
+"	tag=tag\n"
+"	tagPath=path\n"
+"	tagKey=key\n"
+"	brandPath=brandpath\n"
+"	brandKey=brandkey\n"
+"	versionPath=versionpath\n"
+"	versionKey=versionkey\n"
+">";
+
+- (void)testDescriptionStability {
+  // The ticket's -description is easily parsable.  Keep the format mostly
+  // stable for clients that do so.
+  KSExistenceChecker *xc =
+    [KSPathExistenceChecker checkerWithPath:@"/attack/of/the/clowns"];
+  NSURL *url = [NSURL URLWithString:@"http://www.google.com"];
+  NSDate *creationDate = [NSDate date];
+  NSDictionary *args =
+    [NSDictionary dictionaryWithObjectsAndKeys:
+                  @"com.hassel.hoff", KSTicketProductIDKey,
+                  @"3.14.15", KSTicketVersionKey,
+                  xc, KSTicketExistenceCheckerKey,
+                  url, KSTicketServerURLKey,
+                  @"monkeys", KSTicketTrustedTesterTokenKey,
+                  creationDate, KSTicketCreationDateKey,
+                  @"tag", KSTicketTagKey,
+                  @"path", KSTicketTagPathKey,
+                  @"key", KSTicketTagKeyKey,
+                  @"brandpath", KSTicketBrandPathKey,
+                  @"brandkey", KSTicketBrandKeyKey,
+                  @"versionpath", KSTicketVersionPathKey,
+                  @"versionkey", KSTicketVersionKeyKey,
+                  nil];
+  KSTicket *ticket = [KSTicket ticketWithParameters:args];
+  NSString *description = [ticket description];
+  NSString *format = [NSString stringWithUTF8String:templateDescription];
+  // Date description changes based on time zone.  Known clients depending
+  // on the description are not using the creation date.  The ticket and
+  // xc addresses are also not stable, so plug those into the template too.
+  NSString *expected = [NSString stringWithFormat:format,
+                                 ticket, xc,creationDate];
+  STAssertEqualObjects(description, expected, nil);
+}
 
 @end

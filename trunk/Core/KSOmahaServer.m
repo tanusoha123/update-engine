@@ -16,17 +16,23 @@
 #include <sys/param.h>
 #include <sys/mount.h>
 #include <unistd.h>
-#import "KSUpdateInfo.h"
+#import "KSClientActives.h"
+#import "KSFrameworkStats.h"
 #import "KSStatsCollection.h"
 #import "KSTicket.h"
+#import "KSUpdateEngine.h"
 #import "KSUpdateEngineParameters.h"
-#import "KSFrameworkStats.h"
+#import "KSUpdateInfo.h"
 
 // The brand code to report in the update request if there is no other
 // brand code supplied via the ticket.
 #define DEFAULT_BRAND_CODE @"GGLG"
 
 @interface KSOmahaServer (Private)
+
+// Walk the product actives dictionary provided in the UpdateEngine parameters
+// and fill populate |actives_| for later use.
+- (void)setupActives;
 
 // Return an NSDictionary with default settings for all params. This is a class
 // method because it needs to be called before a class instance is initialized
@@ -40,11 +46,6 @@
 // begin construciton of the XML document used for a request
 - (void)createRootAndDocument;
 
-// Returns YES if the given product ID should be considered "active" (actually
-// run by the user recently).  It looks in the active product stats in
-// in the engine params for |productID|.
-- (BOOL)isProductActive:(NSString *)productID;
-
 // Returns an NSXMLElement for the specified application ID. If an element with
 // appID is already attached to |root_|, that one is returned. Otherwise, a new
 // one is created and returned.
@@ -56,6 +57,12 @@
 // convenience wrapper for element+attribute creation
 - (NSXMLElement *)addElement:(NSString *)name withAttribute:(NSString *)attr
                  stringValue:(NSString *)value toParent:(NSXMLElement *)parent;
+
+// See if the given productID needs to have an <o:ping> element added to
+// the update request.  |actives_| is used to determine whether this
+// element is needed, and what the element's attributes should be.
+- (void)addPingElementForProductID:(NSString *)productID
+                          toParent:(NSXMLElement *)parent;
 
 // Return the complete NSData object for an XML document (e.g. including header)
 - (NSData *)dataFromDocument;
@@ -86,7 +93,14 @@
   return [[[self alloc] initWithURL:url params:params] autorelease];
 }
 
-- (id)initWithURL:(NSURL *)url params:(NSDictionary *)params {
++ (id)serverWithURL:(NSURL *)url params:(NSDictionary *)params
+             engine:(KSUpdateEngine *)engine {
+  return [[[self alloc] initWithURL:url params:params engine:engine]
+           autorelease];
+}
+
+- (id)initWithURL:(NSURL *)url params:(NSDictionary *)params
+           engine:(KSUpdateEngine *)engine {
   // First thing, we need to create our params dictionary, which has some
   // default values that can be overriden by the caller-specified |params|.
   // The -addEntriesFromDictionary call will replace (override) existing values,
@@ -95,7 +109,7 @@
   if (params)
     [defaultParams addEntriesFromDictionary:params];
 
-  if ((self = [super initWithURL:url params:defaultParams])) {
+  if ((self = [super initWithURL:url params:defaultParams engine:engine])) {
     if (![self isAllowedURL:url]) {
       // These lines can never be hit in debug unit test builds because debug
       // builds allow all URLs, so this block could never be hit.
@@ -103,6 +117,7 @@
       [self release];                                    // COV_NF_LINE
       return nil;                                        // COV_NF_LINE
     }
+    [self setupActives];
   }
 
   return self;
@@ -110,6 +125,7 @@
 
 - (void)dealloc {
   [document_ release];
+  [actives_ release];
   [super dealloc];
 }
 
@@ -132,9 +148,12 @@
     [root_ addChild:[self elementFromTicket:t]];
   }
   NSData *data = [self dataFromDocument];
-  NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[self url]];
+  NSMutableURLRequest *request =
+    [NSMutableURLRequest requestWithURL:[self url]];
   [request setHTTPMethod:@"POST"];
   [request setHTTPBody:data];
+
+  GTMLoggerInfo(@"request: %@", [self prettyPrintResponse:nil data:data]);
 
   // return an array of the one item
   NSMutableArray *array = [NSMutableArray arrayWithCapacity:1];
@@ -144,9 +163,15 @@
 
 // response can be nil; we never look at it.
 - (NSArray *)updateInfosForResponse:(NSURLResponse *)response
-                               data:(NSData *)data {
+                               data:(NSData *)data
+                      outOfBandData:(NSDictionary **)oob {
   if (data == nil)
     return nil;
+
+  GTMLoggerInfo(@"response: %@", [self prettyPrintResponse:nil data:data]);
+
+  // No out-of-band data until we find some.
+  if (oob) *oob = nil;
 
   NSError *error = nil;
   NSXMLDocument *doc = [[[NSXMLDocument alloc]
@@ -164,6 +189,27 @@
     GTMLoggerError(@"XML error %@ when looking for .//gupdate/app",  // COV_NF_LINE
                    error);
     return nil;  // COV_NF_LINE
+  }
+
+  // Look for <daystart elapsed_seconds="300" />, an optional return value.
+  // Return an out-of-band dictionary if it exists (and the caller wants it).
+  NSArray *daystarts = [doc nodesForXPath:@".//gupdate/daystart" error:&error];
+    // Pick off one and get its attribute.
+  if ([daystarts count] > 0) {
+    NSXMLNode *daystartNode = [daystarts objectAtIndex:0];
+    NSMutableDictionary *attributes =
+      [self dictionaryWithXMLAttributesForNode:daystartNode];
+    NSString *elapsedSecondsString =
+      [attributes objectForKey:@"elapsed_seconds"];
+    secondsSinceMidnight_ = [elapsedSecondsString intValue];
+
+    if (oob) {
+      NSDictionary *oobData =
+        [NSDictionary
+          dictionaryWithObject:[NSNumber numberWithInt:secondsSinceMidnight_]
+                        forKey:KSOmahaServerSecondsSinceMidnightKey];
+      *oob = oobData;
+    }
   }
 
   // The array of update infos that we will return
@@ -203,12 +249,7 @@
     GTMLoggerInfo(@"Attributes from XMLNode %@ = %@",
                   updatecheckNode, [attributes description]);
 
-    // Make sure the "status" attribute of the "updatecheck" node is "ok"
-    if (![[attributes objectForKey:@"status"] isEqualToString:@"ok"]) {
-      continue;
-    }
-
-    // Stuff the appid (product ID) into our attributes dictionary
+    // Pick up the product ID from the appid attribute
     // (<app appid="..."></app>)
     NSArray *appIDNodes = [element nodesForXPath:@"./@appid" error:&error];
     if (error != nil || [appIDNodes count] == 0) {
@@ -219,6 +260,42 @@
     NSXMLNode *appID = [appIDNodes objectAtIndex:0];
     NSString *productID = [appID stringValue];
 
+    // Notify the delegate about the ping successes before possibly
+    // bailing out for a "noupdate" status.
+    id delegate = [[self engine] delegate];
+    if (delegate) {
+      NSArray *pingNodes = [element nodesForXPath:@"./ping/@status"
+                                            error:&error];
+      if ([pingNodes count] > 0) {
+        NSXMLNode *pingNode = [pingNodes objectAtIndex:0];
+        if ([[pingNode stringValue] isEqualToString:@"ok"]) {
+          NSDate *biasedNow =
+            [NSDate dateWithTimeIntervalSinceNow:-secondsSinceMidnight_];
+          if ([delegate respondsToSelector:
+                          @selector(engine:serverData:forProductID:withKey:)]) {
+            if ([actives_ didSendRollCallForProductID:productID]) {
+              [delegate engine:[self engine]
+                    serverData:biasedNow
+                  forProductID:productID
+                       withKey:kUpdateEngineLastRollCallPingDate];
+            }
+            if ([actives_ didSendActiveForProductID:productID]) {
+              [delegate engine:[self engine]
+                    serverData:biasedNow
+                  forProductID:productID
+                       withKey:kUpdateEngineLastActivePingDate];
+            }
+          }
+        }
+      }
+    }
+
+    // Make sure the "status" attribute of the "updatecheck" node is "ok"
+    if (![[attributes objectForKey:@"status"] isEqualToString:@"ok"]) {
+      continue;
+    }
+
+    // Stuff the appid (product ID) into our attributes dictionary
     [attributes setObject:productID forKey:kServerProductID];
 
     // Build a KSUpdateInfo from the XML attributes and add that to our
@@ -275,12 +352,35 @@
 
 + (NSMutableDictionary *)defaultParams {
   NSMutableDictionary *dict = [NSMutableDictionary dictionary];
-  NSString *dummyGUID = @"{00000000-0000-0000-0000-000000000000}";
-  [dict setObject:dummyGUID forKey:kUpdateEngineMachineID];
-  [dict setObject:dummyGUID forKey:kUpdateEngineUserGUID];
   [dict setObject:@"10" forKey:kUpdateEngineOSVersion];
   [dict setObject:@"0" forKey:kUpdateEngineIsMachine];
   return dict;
+}
+
+- (void)setupActives {
+
+  // Populate the actives with all the stored dates, which is a dictionary
+  // keyed by productID containing the interesting dates.
+  NSDictionary *params = [self params];
+  NSDictionary *activesInfos =
+    [params objectForKey:kUpdateEngineProductActiveInfoKey];
+  NSEnumerator *activeKeyEnumerator = [activesInfos keyEnumerator];
+  NSString *productID;
+
+  actives_ = [[KSClientActives alloc] init];
+  while ((productID = [activeKeyEnumerator nextObject])) {
+    NSDictionary *perProductInfo = [activesInfos objectForKey:productID];
+    NSDate *lastRollCall =
+      [perProductInfo objectForKey:kUpdateEngineLastRollCallPingDate];
+    NSDate *lastPing =
+      [perProductInfo objectForKey:kUpdateEngineLastActivePingDate];
+    NSDate *lastActive =
+      [perProductInfo objectForKey:kUpdateEngineLastActiveDate];
+    [actives_ setLastRollCallPing:lastRollCall
+                   lastActivePing:lastPing
+                       lastActive:lastActive
+                     forProductID:productID];
+  }
 }
 
 // The resulting XML document will look something like the following:
@@ -290,19 +390,17 @@
  <o:gupdate xmlns:o="http://www.google.com/update2/request"
             version="UpdateEngine-0.1.4.0"
             protocol="2.0"
-            machineid="com.google.UpdateEngine"
-            ismachine="0"
-            userid="{00000000-0000-0000-0000-000000000000}">
+            ismachine="0">
 
    <o:os version="MacOSX" platform="mac" sp="10"></o:os>
 
    <o:app appid="com.google.test2">
-     <o:ping active="1"></o:ping>
+     <o:ping a="1" r="1"></o:ping>
      <o:event errorcode="1"></o:event>
    </o:app>
 
    <o:app appid="com.google.test3">
-     <o:ping active="1"></o:ping>
+     <o:ping a="-1" r="1"></o:ping>
    </o:app>
 
    <o:kstat baz="-1" foo="1" bar="1"></o:kstat>
@@ -342,14 +440,6 @@
            withAttribute:@"errorcode"
              stringValue:value
                 toParent:app];
-
-      } else if ([stat isEqualToString:kStatActiveProduct]) {
-        // Set the <o:ping active="1"> stat to indicate that this product was
-        // used "recently" (w/in 24 hours)
-        [self addElement:@"o:ping"
-           withAttribute:@"active"
-             stringValue:@"1"
-                toParent:app];
       }
 
       // Add this app element to the root node if necessary
@@ -387,8 +477,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <o:gupdate xmlns:o="http://www.google.com/update2/request" version="UpdateEngine-1.0"
     protocol="2.0"
-    machineid="{874E4D29-8671-40C8-859F-4DECA481CF42}" ismachine="1"
-    userid="{johng}">
+    ismachine="1">
   <o:os version="MacOSX" platform="mac" sp="10.5.2_x86"></o:os>
 
     ...right here: filled in via -elementFromTicket, lower...
@@ -415,16 +504,9 @@
   [root_ addAttribute:[NSXMLNode attributeWithName:@"protocol"
                                        stringValue:@"2.0"]];
 
-  NSString *machineid = [[self params] objectForKey:kUpdateEngineMachineID];
-  [root_ addAttribute:[NSXMLNode attributeWithName:@"machineid"
-                                       stringValue:machineid]];
-
   NSString *ismachine = [[self params] objectForKey:kUpdateEngineIsMachine];
   [root_ addAttribute:[NSXMLNode attributeWithName:@"ismachine"
                                  stringValue:ismachine]];
-  NSString *userid = [[self params] objectForKey:kUpdateEngineUserGUID];
-  [root_ addAttribute:[NSXMLNode attributeWithName:@"userid"
-                                       stringValue:userid]];
   // 'tag' is optional; it may be nil.
   NSString *tag = [[self params] objectForKey:kUpdateEngineUpdateCheckTag];
   if (tag) [root_ addAttribute:[NSXMLNode attributeWithName:@"tag"
@@ -473,19 +555,40 @@
   return app;
 }
 
-- (BOOL)isProductActive:(NSString *)productID {
-  NSDictionary *allProductStats =
-    [[self params] objectForKey:kUpdateEngineProductStats];
-  NSDictionary *productStats = [allProductStats objectForKey:productID];
-  NSNumber *active =
-    [productStats objectForKey:kUpdateEngineProductStatsActive];
-  return [active boolValue];
+- (void)addPingElementForProductID:(NSString *)productID
+                          toParent:(NSXMLElement *)parent {
+  int rollcallDays = [actives_ rollCallDaysForProductID:productID];
+  int activeDays = [actives_ activeDaysForProductID:productID];
+
+  if (rollcallDays == kKSClientActivesDontReport &&
+      activeDays == kKSClientActivesDontReport) {
+    // No ping.
+    return;
+  }
+
+  NSXMLElement *ping = [NSXMLNode elementWithName:@"o:ping"];
+  // The "r=#" attribute is the number of days since the last roll-call
+  // ping.
+  if (rollcallDays != kKSClientActivesDontReport) {
+    NSString *rollcallString = [NSString stringWithFormat:@"%d", rollcallDays];
+    [ping addAttribute:[NSXMLNode attributeWithName:@"r"
+                                        stringValue:rollcallString]];
+    [actives_ sentRollCallForProductID:productID];
+  }
+  // The "a=#" attribute is the number of days since the last active ping.
+  if (activeDays != kKSClientActivesDontReport) {
+    NSString *activeString = [NSString stringWithFormat:@"%d", activeDays];
+    [ping addAttribute:[NSXMLNode attributeWithName:@"a"
+                                       stringValue:activeString]];
+    [actives_ sentActiveForProductID:productID];
+  }
+  [parent addChild:ping];
 }
 
 - (NSXMLElement *)elementFromTicket:(KSTicket *)t {
   NSXMLElement *el = [self elementForApp:[t productID]];
   [el addAttribute:[NSXMLNode attributeWithName:@"version"
-                                    stringValue:[t version]]];
+                                    stringValue:[t determineVersion]]];
   [el addAttribute:[NSXMLNode attributeWithName:@"lang" stringValue:@"en-us"]];
   // Set the "install age", as determined by the ticket's creation date.
   NSDate *creationDate = [t creationDate];
@@ -502,6 +605,10 @@
                                         stringValue:age]];
     }
   }
+  if ([[[self params] objectForKey:kUpdateEngineUserInitiated] boolValue]) {
+    [el addAttribute:[NSXMLNode attributeWithName:@"installsource"
+                                      stringValue:@"ondemandupdate"]];
+  }
 
   NSString *tag = [t determineTag];
   if (tag)
@@ -512,11 +619,9 @@
   [el addAttribute:[NSXMLNode attributeWithName:@"brand"
                                     stringValue:brand]];
 
-  NSString *active = [self isProductActive:[t productID]] ? @"1" : @"0";
-  [self addElement:@"o:ping"
-     withAttribute:@"active"
-       stringValue:active
-          toParent:el];
+  // Adds o:ping element.
+  [self addPingElementForProductID:[t productID]
+                          toParent:el];
 
   NSString *ttTokenString = nil;
   NSString *ttTokenValue = [t trustedTesterToken];

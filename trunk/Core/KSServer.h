@@ -15,6 +15,8 @@
 #import <Foundation/Foundation.h>
 
 
+@class KSUpdateEngine;
+
 // KSServer
 //
 // *Abstract* class for dealing with specific types of "UpdateEngine servers".
@@ -31,12 +33,13 @@
  @private
   NSURL *url_;
   NSDictionary *params_;
+  KSUpdateEngine *engine_;
 }
 
 // Initializes the KSSever instance with the specified |url| and nil params.
 - (id)initWithURL:(NSURL *)url;
 
-// Designated initializer. The |url| is the address where the server resides,
+// The |url| is the address where the server resides,
 // and |params| is an optional dictionary of values associated with this server
 // instance. |params| can be any dictionary of key/value pairs. There are no
 // standard or required keys, and they're only interpreted by the specific
@@ -44,11 +47,22 @@
 // document those keys. The |url| argument is required, |params| is optional.
 - (id)initWithURL:(NSURL *)url params:(NSDictionary *)params;
 
+// Designated initializer.  Like -initWithURL:params, but also pass in
+// the UpdateEngine that's controlling the whole process.  This is so
+// we can return server-specific information via a delegate method.
+- (id)initWithURL:(NSURL *)url params:(NSDictionary *)params
+           engine:(KSUpdateEngine *)engine;
+
 // Returns the URL of this server.
 - (NSURL *)url;
 
 // Returns the parameters used when creating this server instance.
+// Returns nil if they were not provided.
 - (NSDictionary *)params;
+
+// Returns the update engine that is responsible for the current update.
+// Returns nil if it was not provided.
+- (KSUpdateEngine *)engine;
 
 // Returns an array of NSURLRequest objects for the given |tickets|.
 // Array may contain only one request, or may be nil.
@@ -57,8 +71,15 @@
 // Returns an array of KSUpdateInfo dictionaries representing the results from a
 // server in a server agnostic way. The keys for the dictionaries are declared
 // in KSUpdateInfo.h.
+// |oob| is an NSDictionary of out-of-band data, chunks of information
+// from the server class that are outside of the data for each
+// upadate.
+// If there is no OOB data, |*oob| will be assigned to nil.  It is valid to
+// to pass NULL if you're not interested in OOB data.
+// Subclasses should override this.
 - (NSArray *)updateInfosForResponse:(NSURLResponse *)response
-                               data:(NSData *)data;
+                               data:(NSData *)data
+                      outOfBandData:(NSDictionary **)oob;
 
 // Returns a pretty-printed version of the specified response and data.
 - (NSString *)prettyPrintResponse:(NSURLResponse *)response

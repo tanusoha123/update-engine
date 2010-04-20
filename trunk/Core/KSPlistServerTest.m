@@ -553,13 +553,15 @@ static NSString *const kPlistNRules_4 =
   [server_ requestsForTickets:tickets_];
   
   // Make sure passing nil data returns nil
-  STAssertNil([server_ updateInfosForResponse:nil data:nil], nil);
+  STAssertNil([server_ updateInfosForResponse:nil data:nil outOfBandData:NULL],
+              nil);
   
   // *** kPlist1Rule_1 ***
   // Expect: 1 update
   NSArray *updateInfos = nil;
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlist1Rule_1 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlist1Rule_1 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   
   STAssertNotNil(updateInfos, nil);
   STAssertEquals([updateInfos count], 1U, nil);
@@ -575,37 +577,43 @@ static NSString *const kPlistNRules_4 =
   // *** kPlist1Rule_2 ***
   // Expect: No updates (due to predicate's ticket version)
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlist1Rule_2 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlist1Rule_2 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   STAssertNil(updateInfos, nil);
   
   // *** kPlist1Rule_3 ***
   // Expect: No updates (due to invalid predicate)
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlist1Rule_3 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlist1Rule_3 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   STAssertNil(updateInfos, nil);
   
   // *** kPlist1Rule_4 ***
   // Expect: No updates (due to unmatched product ID)
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlist1Rule_4 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlist1Rule_4 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   STAssertNil(updateInfos, nil);
   
   // *** kPlist1Rule_5 ***
   // Expect: No updates (due to badly formed XML)
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlist1Rule_5 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlist1Rule_5 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   STAssertNil(updateInfos, nil);
   
   // *** kPlist1Rule_6 ***
   // Expect: No updates (due to missing code hash)
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlist1Rule_6 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlist1Rule_6 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   STAssertNil(updateInfos, nil);
   
   // *** kPlist1Rule_7 ***
   // Expect: 1 update (w/ the size specified as an integer)
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlist1Rule_7 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlist1Rule_7 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   STAssertNotNil(updateInfos, nil);
   ui = [updateInfos lastObject];
   [self assertUpdateInfo:ui
@@ -617,25 +625,29 @@ static NSString *const kPlistNRules_4 =
   // *** kPlist1Rule_8 ***
   // Expect: No updates (no rules)
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlist1Rule_8 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlist1Rule_8 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   STAssertNil(updateInfos, nil);
   
   // *** kPlist1Rule_9 ***
   // Expect: No updates (empty plist)
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlist1Rule_9 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlist1Rule_9 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   STAssertNil(updateInfos, nil);
   
   // *** kPlist1Rule_10 ***
   // Expect: No updates (empty plist)
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlist1Rule_10 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlist1Rule_10 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   STAssertNil(updateInfos, nil);
   
   // *** kPlist1Rule_11 ***
   // Expect: No updates (empty plist)
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlist1Rule_11 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlist1Rule_11 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   STAssertNil(updateInfos, nil);
 }
 
@@ -647,7 +659,8 @@ static NSString *const kPlistNRules_4 =
   // Expect: 3 updates
   NSArray *updateInfos = nil;
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlistNRules_1 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlistNRules_1 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   
   STAssertNotNil(updateInfos, nil);
   STAssertEquals([updateInfos count], 3U, nil);
@@ -675,7 +688,8 @@ static NSString *const kPlistNRules_4 =
   // *** kPlistNRules_2 ***
   // Expect: 1 Update (other predicates fail)
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlistNRules_2 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlistNRules_2 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   STAssertNotNil(updateInfos, nil);
   STAssertEquals([updateInfos count], 1U, nil);
   ui = [updateInfos objectAtIndex:0];
@@ -688,7 +702,8 @@ static NSString *const kPlistNRules_4 =
   // *** kPlistNRules_3 ***
   // Expect: 1 Update (despite the exception that will be thrown for rule 2)
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlistNRules_3 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlistNRules_3 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   STAssertNotNil(updateInfos, nil);
   STAssertEquals([updateInfos count], 1U, nil);
   ui = [updateInfos objectAtIndex:0];
@@ -701,7 +716,8 @@ static NSString *const kPlistNRules_4 =
   // *** kPlistNRules_4 ***
   // Expect: No Updates (All predicates fail)
   updateInfos = [server_ updateInfosForResponse:nil data:
-                 [kPlistNRules_4 dataUsingEncoding:NSUTF8StringEncoding]];
+                 [kPlistNRules_4 dataUsingEncoding:NSUTF8StringEncoding]
+                                  outOfBandData:NULL];
   STAssertNil(updateInfos, nil);
 }
 

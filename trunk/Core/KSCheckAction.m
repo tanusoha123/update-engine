@@ -13,13 +13,15 @@
 // limitations under the License.
 
 #import "KSCheckAction.h"
-#import "KSTicket.h"
-#import "KSUpdateCheckAction.h"
-#import "KSPlistServer.h"
+
+#import "KSActionConstants.h"
 #import "KSActionPipe.h"
 #import "KSActionProcessor.h"
-#import "KSTicketStore.h"
 #import "KSFrameworkStats.h"
+#import "KSPlistServer.h"
+#import "KSTicket.h"
+#import "KSTicketStore.h"
+#import "KSUpdateCheckAction.h"
 
 
 // The KSServer class used by this action is configurable. This variable holds
@@ -32,6 +34,12 @@ static Class gServerClass;  // Weak
 
 @implementation KSCheckAction
 
++ (id)actionWithTickets:(NSArray *)tickets params:(NSDictionary *)params
+                 engine:(KSUpdateEngine *)engine {
+  return [[[self alloc] initWithTickets:tickets params:params engine:engine]
+           autorelease];
+}
+
 + (id)actionWithTickets:(NSArray *)tickets params:(NSDictionary *)params {
   return [[[self alloc] initWithTickets:tickets params:params] autorelease];
 }
@@ -40,12 +48,20 @@ static Class gServerClass;  // Weak
   return [[[self alloc] initWithTickets:tickets] autorelease];
 }
 
-- (id)initWithTickets:(NSArray *)tickets params:(NSDictionary *)params {
+- (id)initWithTickets:(NSArray *)tickets params:(NSDictionary *)params
+               engine:(KSUpdateEngine *)engine {
   if ((self = [super init])) {
     tickets_ = [tickets copy];
     params_ = [params retain];
+    engine_ = [engine retain];
+    updateInfos_ = [[NSMutableArray alloc] init];
+    outOfBandData_ = [[NSMutableDictionary alloc] init];
   }
   return self;
+}
+
+- (id)initWithTickets:(NSArray *)tickets params:(NSDictionary *)params {
+  return [self initWithTickets:tickets params:params engine:nil];
 }
 
 - (id)initWithTickets:(NSArray *)tickets {
@@ -53,8 +69,11 @@ static Class gServerClass;  // Weak
 }
 
 - (void)dealloc {
-  [params_ release];
   [tickets_ release];
+  [updateInfos_ release];
+  [outOfBandData_ release];
+  [params_ release];
+  [engine_ release];
   [super dealloc];
 }
 
@@ -66,35 +85,37 @@ static Class gServerClass;  // Weak
     [[self processor] finishedProcessing:self successfully:YES];
     return;
   }
-  
+
   NSURL *url = nil;
   NSEnumerator *tixMapEnumerator = [tixMap keyEnumerator];
-  
+
   while ((url = [tixMapEnumerator nextObject])) {
     NSArray *tickets = [tixMap objectForKey:url];
     [[KSFrameworkStats sharedStats] incrementStat:kStatTickets
                                                by:[tickets count]];
-    
-    // We don't want to check for products that are currently not installed, so 
-    // we need to filter the array of tickets to only those ticktes whose 
+
+    // We don't want to check for products that are currently not installed, so
+    // we need to filter the array of tickets to only those ticktes whose
     // existence checker indicates that they are currently installed.
     // NSPredicate makes this very easy.
     NSArray *filteredTickets =
       [tickets filteredArrayUsingPredicate:
        [NSPredicate predicateWithFormat:@"existenceChecker.exists == YES"]];
-    
+
     if ([filteredTickets count] == 0)
       continue;
-    
+
     GTMLoggerInfo(@"filteredTickets = %@", filteredTickets);
     [[KSFrameworkStats sharedStats] incrementStat:kStatValidTickets
                                                by:[filteredTickets count]];
-    
+
     Class serverClass = [[self class] serverClass];
     // Creates a concrete KSServer instance using the designated initializer
-    // declared on KSServer.
+    // declared on KSServer.  Pass along |engine_| so the server can call
+    // delegate methods, if it needs to.
     KSServer *server = [[[serverClass alloc] initWithURL:url
-                                                  params:params_] autorelease];
+                                                  params:params_
+                                                  engine:engine_] autorelease];
     KSAction *checker = [KSUpdateCheckAction checkerWithServer:server
                                                        tickets:filteredTickets];
     [[self subProcessor] enqueueAction:checker];
@@ -105,12 +126,21 @@ static Class gServerClass;  // Weak
     [[self processor] finishedProcessing:self successfully:YES];
     return;
   }
-  
+
   // Our output needs to be the aggregate of all our sub-action checkers' output
-  // For now, we'll just set our output to a mutable array, that we'll append to
-  // as each sub-action checker finishs.
-  [[self outPipe] setContents:[NSMutableArray array]];
-  
+  // For now, we'll just set our output to a dictionary holding
+  // |updateInfos_| and |outOfBandData_|.  When subactions complete,
+  // we'll add their output to these two structures.
+
+  [updateInfos_ removeAllObjects];
+  [outOfBandData_ removeAllObjects];
+  NSMutableDictionary *outPipeContents =
+    [NSDictionary dictionaryWithObjectsAndKeys:
+                  updateInfos_, KSActionUpdateInfosKey,
+                  outOfBandData_, KSActionOutOfBandDataKey,
+                  nil];
+  [[self outPipe] setContents:outPipeContents];
+
   [[self subProcessor] startProcessing];
 }
 
@@ -121,8 +151,20 @@ static Class gServerClass;  // Weak
   [[KSFrameworkStats sharedStats] incrementStat:kStatChecks];
   if (wasOK) {
     // Get the checker's output contents and append it to our own output.
-    NSArray *checkerOutput = [[action outPipe] contents];
-    [[[self outPipe] contents] addObjectsFromArray:checkerOutput];
+    NSDictionary *checkerOutput = [[action outPipe] contents];
+
+    NSDictionary *oobData =
+      [checkerOutput objectForKey:KSActionOutOfBandDataKey];
+    NSURL *url = [checkerOutput objectForKey:KSActionServerURLKey];
+    if (oobData && url) {
+      [outOfBandData_ setObject:oobData forKey:[url description]];
+    }
+
+    NSArray *infos = [checkerOutput objectForKey:KSActionUpdateInfosKey];
+    if (infos) {
+      [updateInfos_ addObjectsFromArray:infos];
+    }
+
     // See header comments about why this gets set to YES here.
     wasSuccessful_ = YES;
   } else {

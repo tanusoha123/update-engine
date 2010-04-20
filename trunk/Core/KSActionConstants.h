@@ -1,4 +1,4 @@
-// Copyright 2008 Google Inc.
+// Copyright 2010 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,5 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Define the current Update Engine version.
-UPDATE_ENGINE_VERSION = R9
+// Constants that are used for keys into dictionaries that are passed
+// between UpdateEngine actions.
+
+// Value is an NSArray of KSUpdateInfo objects.
+#define KSActionUpdateInfosKey   @"UpdateInfos"
+
+// Value is an NSDictionary.
+#define KSActionOutOfBandDataKey @"OutOfBandData"
+
+// Value is an NSURL.
+#define KSActionServerURLKey @"ServerURL"

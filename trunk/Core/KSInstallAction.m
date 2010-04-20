@@ -359,7 +359,7 @@ bail_no_unmount:
       KSTicket *ticket = value;
       [env setObject:[ticket productID]
               forKey:@"KS_TICKET_PRODUCT_ID"];
-      [env setObject:[ticket version]
+      [env setObject:[ticket determineVersion]
               forKey:@"KS_TICKET_VERSION"];
       [env setObject:[[ticket serverURL] description]
               forKey:@"KS_TICKET_SERVER_URL"];

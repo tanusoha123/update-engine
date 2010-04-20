@@ -13,14 +13,15 @@
 // limitations under the License.
 
 #import <SenTestingKit/SenTestingKit.h>
-#import "KSMockFetcherFactory.h"
+#import "KSUpdateCheckAction.h"
+#import "KSActionConstants.h"
 #import "KSActionPipe.h"
+#import "KSActionProcessor.h"
 #import "KSExistenceChecker.h"
-#import "KSUpdateInfo.h"
+#import "KSMockFetcherFactory.h"
 #import "KSPlistServer.h"
 #import "KSTicket.h"
-#import "KSUpdateCheckAction.h"
-#import "KSActionProcessor.h"
+#import "KSUpdateInfo.h"
 
 
 @interface KSUpdateCheckActionTest : SenTestCase {
@@ -61,7 +62,7 @@
 /* --------------------------------------------------------------- */
 @implementation KSSplitMockServer
 
-// One request per ticket to create many fetchers 
+// One request per ticket to create many fetchers
 - (NSArray *)requestsForTickets:(NSArray *)tickets {
   NSMutableArray *array = [NSMutableArray arrayWithCapacity:[tickets count]];
   for (int i = 0; i < [tickets count]; i++) {
@@ -77,7 +78,10 @@
 }
 
 // One action, ever.
-- (NSArray *)updateInfosForResponse:(NSURLResponse *)response data:(NSData *)data {
+- (NSArray *)updateInfosForResponse:(NSURLResponse *)response
+                               data:(NSData *)data
+                      outOfBandData:(NSDictionary **)oob {
+  if (oob) *oob = nil;
   int x = 0;
   sscanf([data bytes], "%d", &x);
   NSDictionary *result = [NSDictionary dictionaryWithObject:[NSNumber numberWithInt:x]
@@ -92,7 +96,7 @@
 /* --------------------------------------------------------------- */
 @implementation KSSingleMockServer
 
-// Only one request for all tickets 
+// Only one request for all tickets
 - (NSArray *)requestsForTickets:(NSArray *)tickets {
   NSMutableArray *array = [NSMutableArray arrayWithCapacity:1];
   NSString *countString = [NSString stringWithFormat:@"%d", [tickets count]];
@@ -106,7 +110,10 @@
 }
 
 // N KSActions, where N is the number embedded in data.
-- (NSArray *)updateInfosForResponse:(NSURLResponse *)response data:(NSData *)data {
+- (NSArray *)updateInfosForResponse:(NSURLResponse *)response
+                               data:(NSData *)data
+                      outOfBandData:(NSDictionary **)oob {
+  if (oob) *oob = nil;
   int x = 0;
   sscanf([data bytes], "%d", &x);
   NSMutableArray *array = [NSMutableArray array];
@@ -139,8 +146,8 @@
 
 - (void)setUp {
   processor_ = [[KSActionProcessor alloc] init];
-  
-  url_ = [NSURL URLWithString:@"file://foo"];  
+
+  url_ = [NSURL URLWithString:@"file://foo"];
   splitServer_ = [[KSSplitMockServer alloc] initWithURL:url_];
   singleServer_ = [[KSSingleMockServer alloc] initWithURL:url_];
   twoTickets_ = [[self createTickets:2 forServer:splitServer_] retain];
@@ -210,19 +217,19 @@
                                                ofType:@"plist"];
   STAssertNotNil(serverPlist, nil);
   NSURL *serverURL = [NSURL fileURLWithPath:serverPlist];
-  
+
   // Creates a KSServer for our "Plist server" that is really a text file
   // containing Plist-style XML
   KSServer *server = [KSPlistServer serverWithURL:serverURL];
   STAssertNotNil(server, nil);
-  
+
   // Create a ticket that matches the one product in our plist server file
   KSTicket *ticket = [KSTicket ticketWithProductID:@"COM.GOOGLE.UPDATEENGINE.KSUPDATEENGINE_TEST"
                                            version:@"0"
                                   existenceChecker:[KSPathExistenceChecker checkerWithPath:@"/"]
                                          serverURL:serverURL];
   STAssertNotNil(ticket, nil);
-  
+
   KSUpdateCheckAction *action =
     [KSUpdateCheckAction checkerWithServer:server
                                    tickets:[NSArray arrayWithObject:ticket]];
@@ -233,7 +240,7 @@
   [processor_ enqueueAction:action];
   [self runAction:action];
   [self confirmNoErrors];
-  
+
   NSDictionary *dict =
     [NSDictionary dictionaryWithObjectsAndKeys:
      @"TyWAiay1UCIV0gqGbfjF4R009mg=", kServerCodeHash,
@@ -246,8 +253,14 @@
      @"COM.GOOGLE.UPDATEENGINE.KSUPDATEENGINE_TEST", @"ProductID",
      @"TRUEPREDICATE", @"Predicate",
      nil];
-  
-  NSArray *expect = [NSArray arrayWithObject:dict];  
+
+  // This is what the KSOutOfBandDataAction emits.
+  NSArray *updateInfos = [NSArray arrayWithObject:dict];
+  NSDictionary *expect =
+    [NSDictionary dictionaryWithObjectsAndKeys:
+                  serverURL, KSActionServerURLKey,
+                  updateInfos, KSActionUpdateInfosKey,
+                  nil];
   STAssertEqualObjects([[action outPipe] contents], expect, nil);
 }
 
@@ -263,7 +276,7 @@
   STAssertNotNil(factory, nil);
   STAssertNotNil(action, nil);
   [processor_ enqueueAction:action];
-  
+
   [self runAction:action];
   [self confirmNoErrors];
 
@@ -282,15 +295,17 @@
 //
 // In short, 2 tickets --> 2 fetchers --> 2 (exactly the same) results
 - (void)testSplitServer {
-  NSArray *results = [self resultsFromMockTestWithServer:splitServer_
-                                                tickets:twoTickets_];
-  STAssertTrue([results count] == 1, nil);
-  
+  NSDictionary *results = [self resultsFromMockTestWithServer:splitServer_
+                                                      tickets:twoTickets_];
+  NSArray *updateInfos = [results objectForKey:KSActionUpdateInfosKey];
+
+  STAssertTrue([updateInfos count] == 1, nil);
+
   NSDictionary *expect =
     [NSDictionary dictionaryWithObject:[NSNumber numberWithInt:2]
                                 forKey:@"NumberKey"];
-  
-  STAssertEqualObjects([results objectAtIndex:0], expect, nil);
+
+  STAssertEqualObjects([updateInfos objectAtIndex:0], expect, nil);
 }
 
 // Similar to testSplitServer above, but we only use one fetcher for several
@@ -301,15 +316,16 @@
 //
 // In short, 8 tickets --> 1 fetcher --> 8 (unique) actions.
 - (void)testSingleFetcher {
-  NSArray *results = [self resultsFromMockTestWithServer:singleServer_
-                                                 tickets:lottaTickets_];
+  NSDictionary *results = [self resultsFromMockTestWithServer:singleServer_
+                                                      tickets:lottaTickets_];
+  NSArray *updateInfos = [results objectForKey:KSActionUpdateInfosKey];
 
-  STAssertTrue([results count] == [lottaTickets_ count], nil);
-  for (int i = 0; i < [results count]; i++) {
+  STAssertTrue([updateInfos count] == [lottaTickets_ count], nil);
+  for (int i = 0; i < [updateInfos count]; i++) {
     NSDictionary *expect =
       [NSDictionary dictionaryWithObject:[NSNumber numberWithInt:i]
                                   forKey:@"NumberKey"];
-    STAssertTrue([[results objectAtIndex:i] isEqual:expect], nil);
+    STAssertTrue([[updateInfos objectAtIndex:i] isEqual:expect], nil);
   }
 }
 
@@ -336,22 +352,22 @@
 
   // intentionally no running of the run loop here so this action
   // can't finish.  (If it finished we couldn't cancel it!)
-  
+
   [self confirmNoErrors];
   [processor_ stopProcessing];  // should call terminateAction
   STAssertTrue([action isRunning] == NO, nil);
   STAssertTrue([action outstandingRequests] == 0, nil);
   STAssertTrue([processor_ actionsCompleted] == 0, nil);
-}  
+}
 
 // Make sure bad input (tickets point to different servers) gets caught.
 - (void)testBadTickets {
   NSMutableArray *mixedTickets = [NSMutableArray array];
   [mixedTickets addObjectsFromArray:twoTickets_];
-  
+
   NSString *productid = [NSString stringWithFormat:@"{guid-%d}", 102];
   KSExistenceChecker *xc = [KSExistenceChecker falseChecker];
-  NSURL *altURL = [NSURL URLWithString:@"file://foo/alt/bar"];  
+  NSURL *altURL = [NSURL URLWithString:@"file://foo/alt/bar"];
   [mixedTickets addObject:[KSTicket ticketWithProductID:productid
                                version:@"1.0"
                                existenceChecker:xc
@@ -367,13 +383,13 @@
                                                     server:splitServer_
                                                    tickets:mixedTickets]
                                    autorelease];
-  STAssertNil(action1, nil); 
+  STAssertNil(action1, nil);
   KSUpdateCheckAction *action2 = [[[KSUpdateCheckAction alloc]
                                     initWithFetcherFactory:factory
                                                     server:singleServer_
                                                    tickets:mixedTickets]
                                    autorelease];
-  STAssertNil(action2, nil); 
+  STAssertNil(action2, nil);
 }
 
 // Again, a funny fetcher factory which is supposed to fail
@@ -392,7 +408,7 @@
 
   [self confirmNoErrors];
   [self runAction:action];
-  
+
   // make sure the errors are exactly what we expected
   STAssertTrue(delegatedStatus_ == 0, nil);
   STAssertTrue(delegatedData_ == 0, nil);
@@ -410,5 +426,3 @@
 }
 
 @end
-
-

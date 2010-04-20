@@ -45,6 +45,10 @@
 - (KSTicket *)ticketWithURL:(NSURL *)url count:(int)count
                   brandPath:(NSString *)brandPath
                    brandKey:(NSString *)brandKey;
+- (KSTicket *)ticketWithURL:(NSURL *)url count:(int)count
+                versionPath:(NSString *)versionPath
+                 versionKey:(NSString *)versionKey
+                    version:(NSString *)version;
 
 // Designated enticketizer: Set a bunch of ticket knobs at one time.
 - (KSTicket *)ticketWithURL:(NSURL *)url
@@ -53,6 +57,8 @@
                creationDate:(NSDate *)creationDate
                         tag:(NSString *)tag
                   brandPath:(NSString *)brandPath
-                   brandKey:(NSString *)brandKey;
-
+                   brandKey:(NSString *)brandKey
+                versionPath:(NSString *)versionPath
+                 versionKey:(NSString *)versionKey
+                    version:(NSString *)version;
 @end

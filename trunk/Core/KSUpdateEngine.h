@@ -150,6 +150,32 @@
 // Optional.
 - (void)engineStarted:(KSUpdateEngine *)engine;
 
+// Called when there is out-of-band data provided by the server
+// classes.  |oob| is a dictionary, keyed by the server URL (an an
+// NSString), whose value is a dictionary of data provided by the
+// class.  The contents of the value dictionary varies by server class
+// (if provided at all).  If there is no OOB data provided by server
+// classes, this method is not called.
+//
+// Optional.
+- (void)engine:(KSUpdateEngine *)engine hasOutOfBandData:(NSDictionary *)oob;
+
+// Called when a KSServer has some information to report about the product.
+// This method is typically called before the update infos are generated, and
+// can return information for a product that doesn't have an update (hence
+// no update infos flowing through the system).
+// |serverData| is some object value from the server.
+// |productID| is the product that the data concerns
+// |key| is what kind of value it is.
+// KSOmahaServer, for instance, returns "Product active key" information
+// through this route.
+//
+// Optional.
+- (void)engine:(KSUpdateEngine *)engine
+    serverData:(id)stuff
+  forProductID:(NSString *)productID
+       withKey:(NSString *)key;
+
 // Sent to the delegate for each ticket's |productID| when |engine|
 // wants to know about per-product stats.  The delegate should return
 // a dictionary containing any of the product stat dictionary keys

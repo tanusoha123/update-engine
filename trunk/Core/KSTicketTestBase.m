@@ -54,11 +54,14 @@
                creationDate:(NSDate *)creationDate
                         tag:(NSString *)tag
                   brandPath:(NSString *)brandPath
-                   brandKey:(NSString *)brandKey {
+                   brandKey:(NSString *)brandKey
+                versionPath:(NSString *)versionPath
+                 versionKey:(NSString *)versionKey
+                    version:(NSString *)version {
 
   KSExistenceChecker *xc = [KSExistenceChecker falseChecker];
   NSString *guid = [NSString stringWithFormat:@"{guid-%d}", count];
-  NSString *version = [NSString stringWithFormat:@"1.%d", count];
+  if (!version) version = [NSString stringWithFormat:@"1.%d", count];
   NSMutableDictionary *args =
     [NSMutableDictionary dictionaryWithObjectsAndKeys:
                          guid, KSTicketProductIDKey,
@@ -67,17 +70,21 @@
                          url, KSTicketServerURLKey,
                          nil];
 
-  if (tttoken) [args setValue:tttoken
-                       forKey:KSTicketTrustedTesterTokenKey];
-  if (creationDate) [args setValue:creationDate
-                            forKey:KSTicketCreationDateKey];
-  if (tag) [args setValue:tag
-                   forKey:KSTicketTagKey];
+  if (tttoken) [args setValue:tttoken forKey:KSTicketTrustedTesterTokenKey];
+  if (creationDate) [args setValue:creationDate forKey:KSTicketCreationDateKey];
+  if (tag) [args setValue:tag forKey:KSTicketTagKey];
   if (brandPath && brandKey) {
     [args setValue:brandPath
             forKey:KSTicketBrandPathKey];
     [args setValue:brandKey
             forKey:KSTicketBrandKeyKey];
+  }
+  [args setValue:version forKey:KSTicketVersionKey];
+  if (versionPath && versionKey) {
+    [args setValue:versionPath
+            forKey:KSTicketVersionPathKey];
+    [args setValue:versionKey
+            forKey:KSTicketVersionKeyKey];
   }
 
   KSTicket *t = [KSTicket ticketWithParameters:args];
@@ -91,7 +98,10 @@
                 creationDate:nil
                          tag:nil
                    brandPath:nil
-                    brandKey:nil];
+                    brandKey:nil
+                 versionPath:nil
+                  versionKey:nil
+                     version:nil];
 }
 
 - (KSTicket *)ticketWithURL:(NSURL *)url count:(int)count
@@ -102,7 +112,10 @@
                 creationDate:nil
                          tag:nil
                    brandPath:nil
-                    brandKey:nil];
+                    brandKey:nil
+                 versionPath:nil
+                  versionKey:nil
+                     version:nil];
 }
 
 - (KSTicket *)ticketWithURL:(NSURL *)url count:(int)count
@@ -113,7 +126,10 @@
                 creationDate:creationDate
                          tag:nil
                    brandPath:nil
-                    brandKey:nil];
+                    brandKey:nil
+                 versionPath:nil
+                  versionKey:nil
+                     version:nil];
 }
 
 - (KSTicket *)ticketWithURL:(NSURL *)url count:(int)count
@@ -124,7 +140,10 @@
                 creationDate:nil
                          tag:tag
                    brandPath:nil
-                    brandKey:nil];
+                    brandKey:nil
+                 versionPath:nil
+                  versionKey:nil
+                     version:nil];
 }
 
 - (KSTicket *)ticketWithURL:(NSURL *)url count:(int)count
@@ -136,8 +155,26 @@
                 creationDate:nil
                          tag:nil
                    brandPath:brandPath
-                    brandKey:brandKey];
+                    brandKey:brandKey
+                 versionPath:nil
+                  versionKey:nil
+                     version:nil];
 }
 
+- (KSTicket *)ticketWithURL:(NSURL *)url count:(int)count
+                versionPath:(NSString *)versionPath
+                 versionKey:(NSString *)versionKey
+                    version:(NSString *)version {
+  return [self ticketWithURL:url
+                       count:count
+                     tttoken:nil
+                creationDate:nil
+                         tag:nil
+                   brandPath:nil
+                    brandKey:nil
+                 versionPath:versionPath
+                  versionKey:versionKey
+                     version:version];
+}
 
 @end
