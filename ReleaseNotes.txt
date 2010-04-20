@@ -5,6 +5,37 @@ Discussion group: http://groups.google.com/group/update-engine
 
 
 
+Release 9
+20-Apr-2010
+
+- Removed userID and machineID from KSOmahaServer.
+- Added out-of-band data reported from server subclasses.
+  KSOmahaServer now reports some out-of-band data.
+  New KSUpdateEngine delegate message for receiving out of band data:
+  - (void)engine:(KSUpdateEngine *)engine hasOutOfBandData:(NSDictionary *)oob;
+  New KSOutOfBandDataAction class which invokes this delegate method.
+- KSCheckAction now gets the KSUpdateEngine that is performing the update,
+  and the engine is passed to server classes (if they want it)
+- Added KSClientActives for accumulating product-active information.  It is also
+  a way of maintaining state between a server's request and response
+- Added per-product info delegate method:
+  - (void)engine:(KSUpdateEngine *)engine
+      serverData:(id)stuff
+    forProductID:(NSString *)productID
+         withKey:(NSString *)key;
+  This allows server classes to pass on information about a product, even if
+  there's not an update.  Ordiniarily, if there is no update, there is no
+  KSUpdateInfo created and shuffled through the system.
+- Added engine parameter keys for passing product active and server info into
+  UpdateEngine.
+- Added "installsource" tag to KSOmahaServer update requests if the update
+  request is user-initiated.
+- KSDownloadAction fixes permissions on the local cache directory so ksurl
+  won't be blocked from downloading.
+- Added TicketPath to KSTicket, which lets you specify the version to report
+  during update checks.
+
+
 Release 8
 25-Jan-2010
 

@@ -13,12 +13,14 @@
 // limitations under the License.
 
 #import "KSUpdateCheckAction.h"
+
 #import "GDataHTTPFetcher.h"
+#import "KSActionConstants.h"
+#import "KSActionPipe.h"
+#import "KSActionProcessor.h"
 #import "KSFetcherFactory.h"
 #import "KSServer.h"
 #import "KSTicket.h"
-#import "KSActionProcessor.h"
-#import "KSActionPipe.h"
 #import "KSUpdateAction.h"
 
 
@@ -168,7 +170,20 @@
   NSString *prettyData = [server_ prettyPrintResponse:response data:data];
   GTMLoggerDebug(@"** XML response:\n%@", prettyData);
 
-  NSArray *results = [server_ updateInfosForResponse:response data:data];
+  NSDictionary *oob;
+  NSArray *updateInfos = [server_ updateInfosForResponse:response
+                                                    data:data
+                                           outOfBandData:&oob];
+  KSTicket *first = [tickets_ objectAtIndex:0];
+  // If |oob| is nil for this dictionary creation, life is still good.
+  // The outgoing dictionary just won't have an out-of-band data
+  // element.
+  NSDictionary *results =
+    [NSDictionary dictionaryWithObjectsAndKeys:
+                  [first serverURL], KSActionServerURLKey,
+                  updateInfos, KSActionUpdateInfosKey,
+                  oob, KSActionOutOfBandDataKey,
+                  nil];
   [[self outPipe] setContents:results];
 
   [self requestFinishedForFetcher:fetcher success:YES];

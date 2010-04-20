@@ -13,32 +13,60 @@
 // limitations under the License.
 
 #import <SenTestingKit/SenTestingKit.h>
-#import "KSDownloadAction.h"
-#import "KSActionProcessor.h"
-#import "KSActionPipe.h"
-#import "NSData+Hash.h"
 #import "GTMBase64.h"
+#import "KSActionPipe.h"
+#import "KSActionProcessor.h"
+#import "KSDownloadAction.h"
+#import "NSData+Hash.h"
 #import <unistd.h>
 #import <sys/utsname.h>
+#import <sys/stat.h>
 
-// Action class where we can control the return value from
-// +filePosixPermissionsForPath, to make sure that +defaultDownloadDirectory
-// does the right thing in the face of different directory permissions.
-@interface KSDownloadDirectoryPermAction : KSDownloadAction
-+ (void)setPermissions:(mode_t)permissions;
+
+// Let us poke into the action's fiddly bits without compiler complaint.
+@interface KSDownloadAction (TestingFriends)
+- (NSString *)ksurlDirectoryName;
+- (NSString *)ksurlValidatedDirectory;
+- (NSString *)ksurlPath;
+- (void)markProgress:(float)progress;
++ (NSString *)downloadDirectoryIdentifier;
++ (NSString *)defaultDownloadDirectory;
++ (NSString *)writableTempNameForPath:(NSString *)path inDomain:(int)domain;
++ (NSString *)cacheSubfolderName;
 @end
 
-@class GTMPath;
-@implementation KSDownloadDirectoryPermAction
 
-static mode_t g_permissions;
+// Action class where we can control the return value from
+// +cacheSubfolderName, to make sure that +writableTempNameForPath
+// does the right thing, without the test clobbering existing
+// directories.
+@interface KSDownloadDirectoryAction : KSDownloadAction
++ (void)setCacheSubfolderName:(NSString *)subfolderName;
++ (void)setDownloadDirectoryIdentifier:(NSString *)identifier;
+@end
 
-+ (void)setPermissions:(mode_t)permissions {
-  g_permissions = permissions;
+@implementation KSDownloadDirectoryAction
+
+static NSString *g_subfolderName;
+static NSString *g_directoryIdentifier;
+
++ (void)setCacheSubfolderName:(NSString *)name {
+  [g_subfolderName autorelease];
+  g_subfolderName = [name copy];
 }
 
-+ (mode_t)filePosixPermissionsForPath:(GTMPath *)path {
-  return g_permissions;
++ (NSString *)cacheSubfolderName {
+  return g_subfolderName ? g_subfolderName : [super cacheSubfolderName];
+}
+
++ (void)setDownloadDirectoryIdentifier:(NSString *)identifier {
+  [g_directoryIdentifier autorelease];
+  g_directoryIdentifier = [identifier copy];
+}
+
++ (NSString *)downloadDirectoryIdentifier {
+  return g_directoryIdentifier ?
+    g_directoryIdentifier : [super downloadDirectoryIdentifier];
 }
 
 @end
@@ -50,14 +78,6 @@ static mode_t g_permissions;
 }
 @end
 
-
-@interface KSDownloadAction (TestingFriends)
-- (NSString *)ksurlDirectoryName;
-- (NSString *)ksurlValidatedDirectory;
-- (NSString *)ksurlPath;
-- (void)markProgress:(float)progress;
-+ (NSString *)defaultDownloadDirectory;
-@end
 
 // ----------------------------------------------------------------
 // Implement KSDownloadActionDelegateMethods.  Keep track of progress.
@@ -548,38 +568,163 @@ static mode_t g_permissions;
   STAssertTrue(last <= 1.0, nil);
 }
 
+- (BOOL)verifyDownloadDirectoryPermissions:(NSString *)path {
+  NSFileManager *fm = [NSFileManager defaultManager];
+  mode_t filePerms =
+    [[fm fileAttributesAtPath:path traverseLink:YES] filePosixPermissions];
+  BOOL success = YES;
+  if (!(filePerms & S_IRWXU)) success = NO;  // RWX by owner.
+  if ((filePerms & (S_IWGRP | S_IWOTH))) success = NO;  // Others can't write.
+  return success;
+}
+
 - (void)testDefaultDownloadDirectoryPermissions {
   NSFileManager *fm = [NSFileManager defaultManager];
   NSString *path = [KSDownloadAction defaultDownloadDirectory];
   STAssertNotNil(path, nil);
 
-  // Make sure the default used is sane.
-  NSDictionary *attrs = [fm fileAttributesAtPath:path
-                                    traverseLink:YES];
-  mode_t filePerms = [attrs filePosixPermissions];
-  STAssertTrue(filePerms & S_IRWXU, nil);  // RWX by the owner.
-  STAssertFalse(filePerms & (S_IWGRP | S_IWOTH), nil);  // Others can't write.
+  NSString *ddd;
 
-  // These should all succeed
-  [KSDownloadDirectoryPermAction setPermissions:0700];  // rwx------
-  STAssertNotNil([KSDownloadDirectoryPermAction defaultDownloadDirectory], nil);
+  // Make sure default download directory permissions are sane.
+  [KSDownloadDirectoryAction setDownloadDirectoryIdentifier:@"hoff"];
+  ddd = [KSDownloadDirectoryAction defaultDownloadDirectory];
+  STAssertTrue([self verifyDownloadDirectoryPermissions:ddd], nil);
 
-  [KSDownloadDirectoryPermAction setPermissions:0750];  // rwxr-x---
-  STAssertNotNil([KSDownloadDirectoryPermAction defaultDownloadDirectory], nil);
+  // Change the perms to no access, and make sure they get fixed.
+  int result = chmod([ddd fileSystemRepresentation], 0000);
+  STAssertEquals(result, 0, nil);
+  ddd = [KSDownloadDirectoryAction defaultDownloadDirectory];
+  STAssertTrue([self verifyDownloadDirectoryPermissions:ddd], nil);
 
-  [KSDownloadDirectoryPermAction setPermissions:0755];  // rwxr-xr-x
-  STAssertNotNil([KSDownloadDirectoryPermAction defaultDownloadDirectory], nil);
+  // Change the perms to be maximally promiscuous.
+  result = chmod([ddd fileSystemRepresentation], 0777);
+  STAssertEquals(result, 0, nil);
+  ddd = [KSDownloadDirectoryAction defaultDownloadDirectory];
+  STAssertTrue([self verifyDownloadDirectoryPermissions:ddd], nil);
 
-  // These should fail because non-owners can write.
-  [KSDownloadDirectoryPermAction setPermissions:0775];  // rwxrwxr-w
-  STAssertNil([KSDownloadDirectoryPermAction defaultDownloadDirectory], nil);
+  // Remove the directory, and bash the parent directory's permissions to
+  // no access.
+  NSString *parentPath = [ddd stringByDeletingLastPathComponent];
+  STAssertTrue([fm removeFileAtPath:ddd handler:nil], nil);
+  result = chmod([parentPath fileSystemRepresentation], 0000);
+  ddd = [KSDownloadDirectoryAction defaultDownloadDirectory];
+  STAssertTrue([self verifyDownloadDirectoryPermissions:parentPath], nil);
+  STAssertTrue([self verifyDownloadDirectoryPermissions:ddd], nil);
 
-  [KSDownloadDirectoryPermAction setPermissions:0757];  // rwxr-wrwx
-  STAssertNil([KSDownloadDirectoryPermAction defaultDownloadDirectory], nil);
+  // Remove the directory, and bash the parent directory's permissions to
+  // be maximally promiscuous.
+  STAssertTrue([fm removeFileAtPath:ddd handler:nil], nil);
+  result = chmod([parentPath fileSystemRepresentation], 0777);
+  ddd = [KSDownloadDirectoryAction defaultDownloadDirectory];
+  STAssertTrue([self verifyDownloadDirectoryPermissions:parentPath], nil);
+  STAssertTrue([self verifyDownloadDirectoryPermissions:ddd], nil);
 
-  [KSDownloadDirectoryPermAction setPermissions:0766];  // rwxrw-rw-
-  STAssertNil([KSDownloadDirectoryPermAction defaultDownloadDirectory], nil);
+  // Cleanup.  Remove the download directory, and its parent.
+  STAssertTrue([fm removeFileAtPath:ddd handler:nil], nil);
+  STAssertTrue([fm removeFileAtPath:parentPath handler:nil], nil);
 }
 
+- (void)testTempName {
+  NSFileManager *fm = [NSFileManager defaultManager];
+  BOOL isDir, exists;
+
+  // First start off with kUserDomain (~/Library/Caches). To resolve symlinks
+  // and tilde, we use stringByResolvingSymlinksInPath but "UpdateEngine-Temp"
+  // may not yet exist.
+  NSString *cachePath =
+      [[@"~/Library/Caches/" stringByResolvingSymlinksInPath]
+          stringByAppendingPathComponent:@"UpdateEngine-Temp"];
+  NSString *basePath = [NSString stringWithFormat:@"%@/%@", cachePath, @"hoff"];
+  NSString *path = [KSDownloadAction writableTempNameForPath:@"hoff"
+                                                    inDomain:kUserDomain];
+  // Make sure the leading part of the generated path is correct.  The tail
+  // part is a UUID which we can't predict.
+  STAssertTrue([path hasPrefix:basePath], nil);
+  // Make sure cachePath exists.
+  exists = [fm fileExistsAtPath:cachePath isDirectory:&isDir];
+  STAssertTrue(exists, nil);
+  STAssertTrue(isDir, nil);
+
+  // Make sure a new directory in ~/Library/Caches is created. Again, resolve
+  // the portion we know must exist first.
+  cachePath = [[@"~/Library/Caches/" stringByResolvingSymlinksInPath]
+                  stringByAppendingPathComponent:@"HoffenGrouse-Temp"];
+  basePath = [NSString stringWithFormat:@"%@/%@", cachePath, @"hoff"];
+  [KSDownloadDirectoryAction setCacheSubfolderName:@"HoffenGrouse-Temp"];
+  path = [KSDownloadDirectoryAction writableTempNameForPath:@"hoff"
+                                                   inDomain:kUserDomain];
+  STAssertTrue([path hasPrefix:basePath], nil);
+  exists = [fm fileExistsAtPath:cachePath isDirectory:&isDir];
+  STAssertTrue(exists, nil);
+  STAssertTrue(isDir, nil);
+
+  // Make sure permissions are sane
+  struct stat statbuf;
+  int result;
+  mode_t newMode;
+  result = stat([cachePath fileSystemRepresentation], &statbuf);
+  STAssertEquals(result, 0, nil);
+  STAssertEquals(statbuf.st_mode & 0700, 0700, nil);
+
+  // Make sure permissions get fixed to owner-writable if changed.
+  newMode = statbuf.st_mode & ~S_IWUSR;
+  result = chmod([cachePath fileSystemRepresentation], newMode);
+  STAssertEquals(result, 0, nil);
+  result = stat([cachePath fileSystemRepresentation], &statbuf);
+  STAssertEquals(result, 0, nil);
+  STAssertEquals(statbuf.st_mode & 0700, 0500, nil);
+  path = [KSDownloadDirectoryAction writableTempNameForPath:@"hoff"
+                                                   inDomain:kUserDomain];
+  result = stat([cachePath fileSystemRepresentation], &statbuf);
+  STAssertEquals(result, 0, nil);
+  STAssertEquals(statbuf.st_mode & 0700, 0700, nil);
+
+  [fm removeFileAtPath:cachePath handler:nil];
+
+  // Now look at kLocalDomain (/Library/Caches)
+  cachePath = @"/Library/Caches/UpdateEngine-Temp";
+  basePath = [NSString stringWithFormat:@"%@/%@", cachePath, @"grouse"];
+  path = [KSDownloadAction writableTempNameForPath:@"grouse"
+                                          inDomain:kLocalDomain];
+  STAssertTrue([path hasPrefix:basePath], nil);
+  // Make sure cachePath exists.
+  exists = [fm fileExistsAtPath:cachePath isDirectory:&isDir];
+  STAssertTrue(exists, nil);
+  STAssertTrue(isDir, nil);
+
+  // Make sure a new directory is created.
+  cachePath = [NSString stringWithFormat:@"/Library/Caches/GrousenHoff-Temp"];
+  basePath = [NSString stringWithFormat:@"%@/%@", cachePath, @"hoff"];
+  [KSDownloadDirectoryAction setCacheSubfolderName:@"GrousenHoff-Temp"];
+  path = [KSDownloadDirectoryAction writableTempNameForPath:@"hoff"
+                                                   inDomain:kLocalDomain];
+  STAssertTrue([path hasPrefix:basePath], nil);
+  exists = [fm fileExistsAtPath:cachePath isDirectory:&isDir];
+  STAssertTrue(exists, nil);
+  STAssertTrue(isDir, nil);
+
+  // Make sure cachePath permissions are sane.
+  result = stat([cachePath fileSystemRepresentation], &statbuf);
+  STAssertEquals(result, 0, nil);
+  STAssertEquals(statbuf.st_mode & 0007, 0007, nil);
+
+  // Make sure permissions get fixed to world-writable if changed.
+  newMode = statbuf.st_mode & ~S_IWOTH;
+  result = chmod([cachePath fileSystemRepresentation], newMode);
+  STAssertEquals(result, 0, nil);
+  result = stat([cachePath fileSystemRepresentation], &statbuf);
+  STAssertEquals(result, 0, nil);
+  STAssertEquals(statbuf.st_mode & 0007, 0005, nil);
+
+  path = [KSDownloadDirectoryAction writableTempNameForPath:@"hoff"
+                                                   inDomain:kLocalDomain];
+  result = stat([cachePath fileSystemRepresentation], &statbuf);
+  STAssertEquals(result, 0, nil);
+  STAssertEquals(statbuf.st_mode & 0007, 0007, nil);
+
+  [KSDownloadDirectoryAction setCacheSubfolderName:nil];
+
+  [fm removeFileAtPath:cachePath handler:nil];
+}
 
 @end

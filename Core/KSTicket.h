@@ -27,6 +27,8 @@
 #define KSTicketTagKeyKey             @"TagKey"
 #define KSTicketBrandPathKey          @"BrandPath"
 #define KSTicketBrandKeyKey           @"BrandKey"
+#define KSTicketVersionPathKey        @"VersionPath"
+#define KSTicketVersionKeyKey         @"VersionKey"
 
 @class KSExistenceChecker;
 
@@ -54,6 +56,8 @@
   NSString *tagKey_;
   NSString *brandPath_;
   NSString *brandKey_;
+  NSString *versionPath_;
+  NSString *versionKey_;
 }
 
 // Returns an autorelased KSTicket instance initialized with the
@@ -160,7 +164,9 @@
 // We don't know or care if it's a GUID or BundleID
 - (NSString *)productID;
 
-// Returns the version for this ticket.
+// Returns the version stored in the ticket.  You may want to use
+// -determineVersion if all you're interested in is "what version do I
+// report to the server for an update?"
 - (NSString *)version;
 
 // Returns the existence checker object for this ticket. This object can be used
@@ -206,5 +212,21 @@
 // a value using the -brandKey.  If that exists, its description is returned.
 // Returns nil if there is no brand code.
 - (NSString *)determineBrand;
+
+// Returns the version path, or nil if the ticket does not have one.
+- (NSString *)versionPath;
+
+// Returns the version key, or nil if the ticket does not have one.
+- (NSString *)versionKey;
+
+// Uses -version, -versionPath, and -versionKey to determine what the
+// ticket's version is.
+// If -versionPath is not-nil, and points to a valid plist file, look up
+// a value with the -versionKey.  If that exists, its description is returned.
+// If it doesn't exist, -version is returned.
+// If -versionPath is not-nil, and points to an invalid plist file, returns
+// -version.
+// If there is no versionPath, returns -version.
+- (NSString *)determineVersion;
 
 @end

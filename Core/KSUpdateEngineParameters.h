@@ -30,6 +30,18 @@
 #define kUpdateEngineIdentity            @"Identity"
 // NSArray of NSStrings.
 #define kUpdateEngineAllowedSubdomains   @"AllowedSubdomains"
+// NSDictionary, keyed by productID, of dictionaries, which contain
+// keys from "Product active keys" below
+#define kUpdateEngineProductActiveInfoKey   @"ActivesInfo"
+// NSDictionary, keyed by a string representation of an URL, that contains
+// information returned by the server on a previous run.  KSOmahaServer
+// stores its secondsSinceMidnight value here.
+#define kUpdateEngineServerInfoKey          @"ServerInfo"
 
 // Product stat dictionary keys.
 #define kUpdateEngineProductStatsActive  @"Active"  // BOOL in NSNumber
+
+// Product active keys.  Values are NSDates.
+#define kUpdateEngineLastActiveDate @"LastActiveDate"
+#define kUpdateEngineLastActivePingDate @"LastActivePingDate"
+#define kUpdateEngineLastRollCallPingDate @"LastRollCallPingDate"

@@ -13,22 +13,28 @@
 // limitations under the License.
 
 #import <SenTestingKit/SenTestingKit.h>
-#import "KSTicketTestBase.h"
 #import "KSOmahaServer.h"
-#import "KSUpdateInfo.h"
-#import "KSUpdateEngineParameters.h"
-#import "KSStatsCollection.h"
+#import "KSClientActives.h"
 #import "KSFrameworkStats.h"
+#import "KSStatsCollection.h"
+#import "KSTicketStore.h"
+#import "KSTicketTestBase.h"
+#import "KSUpdateEngine.h"
+#import "KSUpdateEngineParameters.h"
+#import "KSUpdateInfo.h"
 
 #define DEFAULT_BRAND_CODE @"GGLG"
 
 
 @interface KSOmahaServer (TestingFriends)
-- (BOOL)isProductActive:(NSString *)productID;
 - (BOOL)isAllowedURL:(NSURL *)url;
 @end
 
-@interface KSOmahaServerTest : KSTicketTestBase
+@interface KSOmahaServerTest : KSTicketTestBase {
+  // Contents populated by -engine:serverData:forProductID:withKey:
+  // delegate method.
+  NSMutableDictionary *serverDataDict_;
+}
 // helper to xpath things and verify they exist.  If only one item is found,
 // return it.  Else return the array of items.
 - (id)findInDoc:(NSXMLDocument *)doc path:(NSString *)path count:(int)count;
@@ -40,19 +46,18 @@
 /* Sample request:
 
 <?xml version="1.0" encoding="UTF-8"?>
-<o:gupdate xmlns:o="http://www.google.com/update2/request" version="UpdateEngine-0.1.2.0" protocol="2.0" machineid="{DE30B8C3-2A20-356F-841A-A1D80FE18D02}" ismachine="0" userid="{97E88974-7CB2-4831-ABC8-0776C7BEAB6B}">
+<o:gupdate xmlns:o="http://www.google.com/update2/request" version="UpdateEngine-0.1.2.0" protocol="2.0" ismachine="0"">
     <o:os version="MacOS" sp="10.5.2"></o:os>
     <o:app appid="com.google.UpdateEngine" version="0.1.3.237" lang="en-us" brand="GGLG" installage="37" tag="f00bage">
         <o:updatecheck></o:updatecheck>
-        <o:ping active="0"></o:ping>
+        <o:ping r="1" a="-1></o:ping>
     </o:app>
     <o:app appid="com.google.Matchbook.App" version="0.1.1.0" lang="en-us" brand="GGLG" installage="23">
         <o:updatecheck></o:updatecheck>
-        <o:ping active="0"></o:ping>
     </o:app>
     <o:app appid="com.google.Something.Else" version="0.1.1.0" lang="en-us" brand="GGLG" installage="0">
         <o:updatecheck tttoken="seCRETtoken"/>
-        <o:ping active="1"></o:ping>
+        <o:ping r="10"></o:ping>
     </o:app>
 </o:gupdate>
 
@@ -71,12 +76,18 @@ Sample response (but not for the above request):
 
 @implementation KSOmahaServerTest
 
+// Convenience method to give a date n-hours in the past.
+- (NSDate *)hoursAgo:(int)hours {
+  NSDate *date = [NSDate dateWithTimeIntervalSinceNow:-60 * 60 * hours];
+  return date;
+}
+
 - (id)findInDoc:(NSXMLDocument *)doc path:(NSString *)path count:(int)count {
   NSError *err = nil;
   NSArray *nodes = [doc nodesForXPath:path error:&err];
   STAssertNotNil(nodes, nil);
   STAssertNil(err, nil);
-  STAssertTrue([nodes count] == count, nil);
+  STAssertEquals([nodes count], (unsigned)count, nil);
   if ([nodes count] == 1) {
     return [nodes objectAtIndex:0];
   } else {
@@ -109,9 +120,7 @@ Sample response (but not for the above request):
                      tttokenCount:(int)tttokenCount {
   [self findInDoc:doc path:@".//o:gupdate/@version" count:1];
   [self findInDoc:doc path:@".//o:gupdate/@protocol" count:1];
-  [self findInDoc:doc path:@".//o:gupdate/@machineid" count:1];
   [self findInDoc:doc path:@".//o:gupdate/@ismachine" count:1];
-  [self findInDoc:doc path:@".//o:gupdate/@userid" count:1];
   [self findInDoc:doc path:@".//o:gupdate/o:os/@version" count:1];
   [self findInDoc:doc path:@".//o:gupdate/o:os/@sp" count:1];
   [self findInDoc:doc path:@".//o:gupdate/o:app/@appid" count:appcount];
@@ -121,7 +130,6 @@ Sample response (but not for the above request):
   [self findInDoc:doc path:@".//o:gupdate/o:app/o:updatecheck" count:appcount];
   [self findInDoc:doc path:@".//o:gupdate/o:app/o:updatecheck/@tttoken"
             count:tttokenCount];
-  [self findInDoc:doc path:@".//o:gupdate/o:app/o:ping/@active" count:appcount];
 }
 
 - (void)testCreation {
@@ -315,7 +323,9 @@ static char *kBadResponseStrings[] = {
 // KSOmahaServer ignores its first arg (a NSURLResponse).
 - (void)testBadResponses {
   NSArray *results = nil;
-  results = [httpServer_ updateInfosForResponse:nil data:nil];
+  results = [httpServer_ updateInfosForResponse:nil
+                                           data:nil
+                                  outOfBandData:NULL];
   STAssertTrue([results count] == 0, nil);
 
   int strings = sizeof(kBadResponseStrings)/sizeof(char *);
@@ -323,7 +333,9 @@ static char *kBadResponseStrings[] = {
     NSData *data = [NSData dataWithBytes:kBadResponseStrings[x]
                                   length:strlen(kBadResponseStrings[x])];
     STAssertNotNil(data, nil);
-    results = [httpServer_ updateInfosForResponse:nil data:data];
+    results = [httpServer_ updateInfosForResponse:nil
+                                             data:data
+                                    outOfBandData:NULL];
     STAssertTrue([results count] == 0, nil);
   }
 }
@@ -338,7 +350,9 @@ static char *kBadResponseStrings[] = {
 
 - (NSArray *)updateInfoForStr:(const char *)str {
   NSData *data = [NSData dataWithBytes:str length:strlen(str)];
-  return [httpServer_ updateInfosForResponse:nil data:data];
+  return [httpServer_ updateInfosForResponse:nil
+                                        data:data
+                               outOfBandData:NULL];
 }
 
 static char *kSingleResponseString =
@@ -349,6 +363,26 @@ static char *kSingleResponseString =
 "        <rlz status=\"ok\"></rlz>"
 "        <ping status=\"ok\"></ping>"
 "    </app>"
+"</gupdate>";
+
+static char *kSingleResponseStringWithDaystart =
+"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+"<gupdate xmlns=\"http://www.google.com/update2/response\" protocol=\"2.0\">"
+"   <daystart elapsed_seconds=\"300\" />"
+"    <app appid=\"{8A69D345-D564-463C-AFF1-A69D9E530F96}\" status=\"ok\">"
+"        <updatecheck codebase=\"http://tools.google.com/omaha_download/test.dmg\" hash=\"vaQXjdS1P6VP31rkqe8YuzbNzvk=\" needsadmin=\"true\" size=\"5910016\" status=\"ok\"></updatecheck>"
+"        <rlz status=\"ok\"></rlz>"
+"        <ping status=\"ok\"></ping>"
+"    </app>"
+"</gupdate>";
+
+static char *kNoResponseStringWithDaystart =
+"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+"<gupdate xmlns=\"http://www.google.com/update2/response\" protocol=\"2.0\">"
+"   <daystart elapsed_seconds=\"19283\" />"
+"   <app appid=\"com.google.kipple\" status=\"ok\">"
+"     <updatecheck status=\"noupdate\" />"
+"   </app>"
 "</gupdate>";
 
 - (void)testSingleResponse {
@@ -363,6 +397,7 @@ static char *kSingleResponseString =
 static char *kMultiResponseString =
 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 "<gupdate xmlns=\"http://www.google.com/update2/response\" protocol=\"2.0\">"
+"   <daystart elapsed_seconds=\"300\" />"
 "    <app appid=\"{26EA52A6-C1F2-11DB-B91C-B0B155D89593}\" status=\"ok\">"
 "        <updatecheck codebase=\"http://tools.google.com/omaha_download/test2.dmg\" hash=\"hcqiyPD01sWXVdYHNpWe4H2OBak=\" needsadmin=\"false\" size=\"1868800\" status=\"ok\" MoreInfo=\"http://google.com\"></updatecheck>"
 "        <rlz status=\"ok\"></rlz>"
@@ -377,7 +412,8 @@ static char *kMultiResponseString =
 
 static char *kMegaResponseStringHeader =
 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-"<gupdate xmlns=\"http://www.google.com/update2/response\" protocol=\"2.0\">";
+"<gupdate xmlns=\"http://www.google.com/update2/response\" protocol=\"2.0\">"
+"   <daystart elapsed_seconds=\"300\" />";
 
 static char *kMegaResponseStringAppFormat =
 "    <app appid=\"%@\" status=\"ok\">"
@@ -450,14 +486,11 @@ static char *kMegaResponseStringFooter =
      product2Params, @"{guid-2}",
      nil];
 
-  NSString *machine = @"{machine-guid-goes-here}";
-  NSString *user = @"{users-need-both-love-and-guids}";
   NSString *sp = @"10.982.903404";
   NSString *tag = @"aJEyA_is_our_tesTER";
-  NSArray *objects = [NSArray arrayWithObjects:machine, user, sp, tag, @"1",
+  NSArray *objects = [NSArray arrayWithObjects:sp, tag, @"1",
                               productStats, nil];
-  NSArray *keys = [NSArray arrayWithObjects:kUpdateEngineMachineID,
-                           kUpdateEngineUserGUID,
+  NSArray *keys = [NSArray arrayWithObjects:
                            kUpdateEngineOSVersion,
                            kUpdateEngineUpdateCheckTag,
                            kUpdateEngineIsMachine,
@@ -484,8 +517,6 @@ static char *kMegaResponseStringFooter =
   NSData *data = [[requests objectAtIndex:0] HTTPBody];
   NSXMLDocument *doc = [self documentFromRequest:data];
 
-  NSString *machine = [params objectForKey:kUpdateEngineMachineID];
-  NSString *user = [params objectForKey:kUpdateEngineUserGUID];
   NSString *sp = [params objectForKey:kUpdateEngineOSVersion];
   NSString *tag = [params objectForKey:kUpdateEngineUpdateCheckTag];
 
@@ -500,12 +531,8 @@ static char *kMegaResponseStringFooter =
 
   node = [self findInDoc:doc path:@".//o:gupdate/@version" count:1];
   STAssertTrue([[node stringValue] hasPrefix:@"UpdateEngine-"], nil);
-  node = [self findInDoc:doc path:@".//o:gupdate/@machineid" count:1];
-  STAssertTrue([[node stringValue] isEqual:machine], nil);
   node = [self findInDoc:doc path:@".//o:gupdate/@ismachine" count:1];
   STAssertTrue([[node stringValue] isEqual:@"1"], nil);
-  node = [self findInDoc:doc path:@".//o:gupdate/@userid" count:1];
-  STAssertTrue([[node stringValue] isEqual:user], nil);
 
   node = [self findInDoc:doc path:@".//o:gupdate/@tag" count:1];
   STAssertTrue([[node stringValue] isEqual:tag], nil);
@@ -584,58 +611,227 @@ static char *kMegaResponseStringFooter =
   STAssertNotNil(node, nil);
   STAssertEqualObjects([node stringValue], @"2", nil);
 
-  // Here we just check to make sure that 'test1' doesn't have the ping/@active attribute at all
-  [self findInDoc:doc path:@"//o:gupdate/o:app[@appid='com.google.test1']/o:ping/@active" count:0];
-
-
   node = [self findInDoc:doc path:@"//o:gupdate/o:app[@appid='com.google.test2']/o:event" count:1];
   STAssertNotNil(node, nil);
 
   node = [self findInDoc:doc path:@"//o:gupdate/o:app[@appid='com.google.test2']/o:event/@errorcode" count:1];
   STAssertNotNil(node, nil);
   STAssertEqualObjects([node stringValue], @"1", nil);
-
-  node = [self findInDoc:doc path:@"//o:gupdate/o:app[@appid='com.google.test2']/o:ping/@active" count:1];
-  STAssertNotNil(node, nil);
-  STAssertEqualObjects([node stringValue], @"1", nil);
-
-
-  node = [self findInDoc:doc path:@"//o:gupdate/o:app[@appid='com.google.test3']/o:ping/@active" count:1];
-  STAssertNotNil(node, nil);
-  STAssertEqualObjects([node stringValue], @"1", nil);
 }
 
+// Get a subdictionary out of a dictionary, creating it if necessary.
+- (NSMutableDictionary *)dictInDict:(NSMutableDictionary *)dict
+                             forKey:(NSString *)key {
+  NSMutableDictionary *subDict = [dict objectForKey:key];
+  if (subDict == nil) {
+    subDict = [NSMutableDictionary dictionary];
+    [dict setObject:subDict forKey:key];
+  }
+  return subDict;
+}
+
+// Add an "ActiveInfo" dictionary for the given productID and the given
+// dates.  Final results are suitable for framing.  And for passing as an
+// engine parameter.
+- (void)addRollCallPing:(NSDate *)rcp
+         lastActivePing:(NSDate *)lap
+             lastActive:(NSDate *)la
+           forProductID:(NSString *)productID
+               intoDict:(NSMutableDictionary *)dict {
+  NSMutableDictionary *productInfo =
+    [self dictInDict:dict forKey:kUpdateEngineProductActiveInfoKey];
+  NSMutableDictionary *productDict = [self dictInDict:productInfo
+                                               forKey:productID];
+  if (rcp) [productDict setObject:rcp forKey:kUpdateEngineLastRollCallPingDate];
+  if (lap) [productDict setObject:lap forKey:kUpdateEngineLastActivePingDate];
+  if (la) [productDict setObject:rcp forKey:kUpdateEngineLastActiveDate];
+}
+
+// Response string that includes four app responses, which correspond to
+// guid-[0-3] tickets in -testActives.
+static char *kActivesResponseString =
+"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+"<gupdate xmlns=\"http://www.google.com/update2/response\" protocol=\"2.0\">"
+"   <daystart elapsed_seconds=\"300\" />"
+"    <app appid=\"{guid-0}\" status=\"ok\">"
+"        <updatecheck codebase=\"http://tools.google.com/omaha_download/test.dmg\" hash=\"vaQXjdS1P6VP31rkqe8YuzbNzvk=\" needsadmin=\"true\" size=\"5910016\" status=\"ok\"></updatecheck>"
+"        <ping status=\"ok\"></ping>"
+"    </app>"
+"    <app appid=\"{guid-1}\" status=\"ok\">"
+"        <updatecheck status=\"noupdate\" />"
+"        <ping status=\"ok\"></ping>"
+"    </app>"
+"    <app appid=\"{guid-2}\" status=\"ok\">"
+"        <updatecheck status=\"noupdate\" />"
+"        <ping status=\"ok\"></ping>"
+"    </app>"
+"    <app appid=\"{guid-3}\" status=\"ok\">"
+"        <updatecheck status=\"noupdate\" />"
+"    </app>"
+"</gupdate>";
+
 - (void)testActives {
-  NSDictionary *params = [self paramsDict];
+  serverDataDict_ = [NSMutableDictionary dictionary];
+  KSTicketStore *store = [[[KSMemoryTicketStore alloc] init] autorelease];
+  KSUpdateEngine *engine = [KSUpdateEngine engineWithTicketStore:store
+                                                        delegate:self];
+  STAssertNotNil(engine, nil);
+  NSMutableDictionary *params = [NSMutableDictionary dictionary];
+  // Set up the params dictionary.  First the server params.
 
-  KSOmahaServer *server = [KSOmahaServer serverWithURL:httpURL_ params:params];
-  STAssertNotNil(server, nil);
+  // And then a couple of products.
+  [self addRollCallPing:nil  // expect 'r="-1"' (first report)
+         lastActivePing:nil  // no 'a' since there's no active
+             lastActive:nil
+           forProductID:@"{guid-0}"
+               intoDict:params];
+  [self addRollCallPing:[self hoursAgo:5]  // expect no r since < 24 hours
+         lastActivePing:[self hoursAgo:49]  // expect 'a="2"'
+             lastActive:[self hoursAgo:12]
+           forProductID:@"{guid-1}"
+               intoDict:params];
+  [self addRollCallPing:[self hoursAgo:50]  // expect 'r="2"'.
+         lastActivePing:[self hoursAgo:73]  // expect 'a="3"
+             lastActive:[self hoursAgo:1]
+           forProductID:@"{guid-2}"
+               intoDict:params];
+  [self addRollCallPing:[self hoursAgo:1]  // expect no r since < 24 hours
+         lastActivePing:[self hoursAgo:1]  // expect no a since < 24 hours
+             lastActive:nil                // and so should get no o:ping node.
+           forProductID:@"{guid-3}"
+               intoDict:params];
 
-  // Make sure the utillity function processes the params correctly.
-  STAssertTrue([server isProductActive:@"{guid-0}"], nil);  // exists - true
-  STAssertFalse([server isProductActive:@"{guid-1}"], nil);  // exists - false
-  STAssertFalse([server isProductActive:@"{guid-2}"], nil);  // active not exist
-  STAssertFalse([server isProductActive:@"{guid-3}"], nil);  // no prod stat
+  KSOmahaServer *server = [KSOmahaServer serverWithURL:httpURL_
+                                                params:params
+                                                engine:engine];
+  STAssertNotNil([server engine], nil);
+  KSClientActives *ac = [server valueForKey:@"actives_"];
+  STAssertNotNil(ac, nil);
 
-  // Make sure the proper active values make it out to the server request.
-  int size = 4;
-  NSMutableArray *tickets = [NSMutableArray arrayWithCapacity:size];
-  for (int i = 0; i < size; i++) {
+  // Make sure the expected "r=" and "a=" values come from the clientactives.
+  STAssertEquals([ac rollCallDaysForProductID:@"{guid-0}"],
+                 kKSClientActivesFirstReport, nil);
+  STAssertEquals([ac activeDaysForProductID:@"{guid-0}"],
+                 kKSClientActivesDontReport, nil);
+
+  STAssertEquals([ac rollCallDaysForProductID:@"{guid-1}"],
+                 kKSClientActivesDontReport, nil);
+  STAssertEquals([ac activeDaysForProductID:@"{guid-1}"], 2, nil);
+
+  STAssertEquals([ac rollCallDaysForProductID:@"{guid-2}"], 2, nil);
+  STAssertEquals([ac activeDaysForProductID:@"{guid-2}"], 3, nil);
+
+  STAssertEquals([ac rollCallDaysForProductID:@"{guid-3}"],
+                 kKSClientActivesDontReport, nil);
+  STAssertEquals([ac activeDaysForProductID:@"{guid-3}"],
+                 kKSClientActivesDontReport, nil);
+
+  // Generate the request.
+  NSMutableArray *tickets = [NSMutableArray array];
+  for (int i = 0; i < 4; i++) {
     [tickets addObject:[self ticketWithURL:httpURL_ count:i]];
   }
   NSArray *requests = [server requestsForTickets:tickets];
-  STAssertTrue([requests count] == 1, nil);
+  STAssertEquals([requests count], (unsigned)1, nil);
   NSData *data = [[requests objectAtIndex:0] HTTPBody];
   NSXMLDocument *doc = [self documentFromRequest:data];
-  NSArray *actives =
-    [self findInDoc:doc path:@".//o:gupdate/o:app/o:ping/@active" count:size];
-  // Convert XML elements 'active="X"' to @"X".
-  NSArray *values = [actives valueForKey:@"stringValue"];
-  // First app should be active, the rest not.
-  NSArray *expectedValues =
-    [NSArray arrayWithObjects:@"1", @"0", @"0", @"0", nil];
-  STAssertTrue([expectedValues isEqualToArray:values], nil);
+
+  // Make sure we have the proper o:pings in there.
+  NSXMLNode *node = nil;
+  // guid-0 has r=-1 and no a
+  node = [self findInDoc:doc
+                    path:@"//o:gupdate/o:app[@appid='{guid-0}']/o:ping/@a"
+                   count:0];
+  node = [self findInDoc:doc
+                    path:@"//o:gupdate/o:app[@appid='{guid-0}']/o:ping/@r"
+                   count:1];
+  STAssertEqualObjects([node stringValue], @"-1", nil);
+  STAssertTrue([ac didSendRollCallForProductID:@"{guid-0}"], nil);
+  STAssertFalse([ac didSendActiveForProductID:@"{guid-0}"], nil);
+  // guid-1 has no r and a=2
+  node = [self findInDoc:doc
+                    path:@"//o:gupdate/o:app[@appid='{guid-1}']/o:ping/@a"
+                   count:1];
+  STAssertEqualObjects([node stringValue], @"2", nil);
+  node = [self findInDoc:doc
+                    path:@"//o:gupdate/o:app[@appid='{guid-1}']/o:ping/@r"
+                   count:0];
+  STAssertFalse([ac didSendRollCallForProductID:@"{guid-1}"], nil);
+  STAssertTrue([ac didSendActiveForProductID:@"{guid-1}"], nil);
+  // guid-2 has r=2, a=3
+  node = [self findInDoc:doc
+                    path:@"//o:gupdate/o:app[@appid='{guid-2}']/o:ping/@a"
+                   count:1];
+  STAssertEqualObjects([node stringValue], @"3", nil);
+  node = [self findInDoc:doc
+                    path:@"//o:gupdate/o:app[@appid='{guid-2}']/o:ping/@r"
+                   count:1];
+  STAssertEqualObjects([node stringValue], @"2", nil);
+  STAssertTrue([ac didSendRollCallForProductID:@"{guid-2}"], nil);
+  STAssertTrue([ac didSendActiveForProductID:@"{guid-2}"], nil);
+  // guid-3 has neither, so should have no o:ping block
+  node = [self findInDoc:doc
+                    path:@"//o:gupdate/o:app[@appid='{guid-3}']/o:ping/@a"
+                   count:0];
+  node = [self findInDoc:doc
+                    path:@"//o:gupdate/o:app[@appid='{guid-3}']/o:ping/@r"
+                   count:0];
+  STAssertFalse([ac didSendRollCallForProductID:@"{guid-3}"], nil);
+  STAssertFalse([ac didSendActiveForProductID:@"{guid-3}"], nil);
+
+  // To continue this never-ending test, feed KSOmahaServer a response and
+  // make sure the delegate method is called appropriately
+  data = [NSData dataWithBytes:kActivesResponseString
+                        length:strlen(kActivesResponseString)];
+  STAssertNotNil(data, nil);
+  NSArray *results = [server updateInfosForResponse:nil
+                                               data:data
+                                      outOfBandData:NULL];
+  STAssertEquals([results count], (unsigned)1, nil);  // Just one update.
+
+  // Make sure we got three delegate notifications.
+  STAssertEquals([serverDataDict_ count], (unsigned)3, nil);
+  NSMutableDictionary *productDict;
+
+  productDict = [serverDataDict_ objectForKey:@"{guid-0}"];
+  STAssertNotNil(productDict, nil);
+  // If the recorded times are within 30 seconds of now, consider it "now"
+  // the "300" comes from the daystart/elapsed_seconds value in the response,
+  // which is used to bias the ping date, and because this is sparta.
+  STAssertTrue([[productDict objectForKey:kUpdateEngineLastRollCallPingDate]
+                 timeIntervalSinceNow] > -330, nil);
+  STAssertNil([productDict objectForKey:kUpdateEngineLastActivePingDate], nil);
+
+  productDict = [serverDataDict_ objectForKey:@"{guid-1}"];
+  STAssertNotNil(productDict, nil);
+  STAssertNil([productDict objectForKey:kUpdateEngineLastRollCallPingDate],
+              nil);
+  STAssertTrue([[productDict objectForKey:kUpdateEngineLastActivePingDate]
+                 timeIntervalSinceNow] > -330, nil);
+
+  productDict = [serverDataDict_ objectForKey:@"{guid-2}"];
+  STAssertNotNil(productDict, nil);
+  STAssertTrue([[productDict objectForKey:kUpdateEngineLastRollCallPingDate]
+                 timeIntervalSinceNow] > -330, nil);
+  STAssertTrue([[productDict objectForKey:kUpdateEngineLastActivePingDate]
+                 timeIntervalSinceNow] > -330, nil);
+
+  // guid-3 did not have an o:ping block, so there shold be no delegate
+  // notification.
+  productDict = [serverDataDict_ objectForKey:@"{guid-3}"];
+  STAssertNil(productDict, nil);
 }
+
+// Fill in stuff from delegate method that should be called from -testActives.
+- (void)engine:(KSUpdateEngine *)engine
+    serverData:(id)stuff
+  forProductID:(NSString *)productID
+       withKey:(NSString *)key {
+  NSMutableDictionary *productDict = [self dictInDict:serverDataDict_
+                                               forKey:productID];
+  [productDict setObject:stuff forKey:key];
+}
+
 
 - (void)testInstallAge {
   KSOmahaServer *server = [KSOmahaServer serverWithURL:httpURL_
@@ -740,6 +936,43 @@ static char *kMegaResponseStringFooter =
   STAssertEqualObjects(DEFAULT_BRAND_CODE, value, nil);
 }
 
+- (void)testVersion {
+  KSOmahaServer *server = [KSOmahaServer serverWithURL:httpURL_
+                                                params:nil];
+  STAssertNotNil(server, nil);
+
+  // Use the application name instead of its version, since the TextEdit's
+  // version probably is not as stable the name.
+  KSTicket *t =
+    [self ticketWithURL:httpURL_
+                  count:0
+            versionPath:@"/Applications/TextEdit.app/Contents/Info.plist"
+             versionKey:@"CFBundleDisplayName"
+                version:nil];
+
+  NSArray *requests = [server requestsForTickets:[NSArray arrayWithObject:t]];
+  STAssertEquals((unsigned)1, [requests count], nil);
+  NSData *data = [[requests objectAtIndex:0] HTTPBody];
+  NSXMLDocument *doc = [self documentFromRequest:data];
+  NSString *versionNode =
+    [self findInDoc:doc path:@".//o:gupdate/o:app/@version" count:1];
+
+  // Convert XML element 'version="X"' to @"X".
+  NSString *value = [versionNode valueForKey:@"stringValue"];
+  STAssertEqualObjects(@"TextEdit", value, nil);
+
+  // No version tag/path should result in the ticket's version being used.
+  t = [self ticketWithURL:httpURL_ count:0];
+  requests = [server requestsForTickets:[NSArray arrayWithObject:t]];
+  STAssertEquals((unsigned)1, [requests count], nil);
+  data = [[requests objectAtIndex:0] HTTPBody];
+  doc = [self documentFromRequest:data];
+  versionNode =
+    [self findInDoc:doc path:@".//o:gupdate/o:app/@version" count:1];
+  value = [versionNode valueForKey:@"stringValue"];
+  STAssertEqualObjects(@"1.0", value, nil);
+}
+
 - (void)testIsAllowedURL {
   NSURL *url = [NSURL URLWithString:@"https://placeholder.com"];
   KSOmahaServer *server = [KSOmahaServer serverWithURL:url params:nil];
@@ -826,6 +1059,73 @@ static char *kMegaResponseStringFooter =
   url = [NSURL URLWithString:@"https://backup.snorklegronk.com"];
   STAssertFalse([server isAllowedURL:url], nil);
 #endif
+}
+
+- (void)testOutOfBandData {
+  NSURL *url = [NSURL URLWithString:@"https://placeholder.com"];
+  KSOmahaServer *server = [KSOmahaServer serverWithURL:url params:nil];
+  STAssertNotNil(server, nil);
+
+  // No out of band data.
+  NSData *data = [NSData dataWithBytes:kSingleResponseString
+                                length:strlen(kSingleResponseString)];
+  NSDictionary *oob;
+  NSArray *infos = [server updateInfosForResponse:nil
+                                             data:data
+                                    outOfBandData:&oob];
+  STAssertEquals([infos count], (unsigned)1, nil);
+  STAssertNil(oob, nil);
+
+  // Out-of-band data.
+  data = [NSData dataWithBytes:kSingleResponseStringWithDaystart
+                        length:strlen(kSingleResponseStringWithDaystart)];
+  infos = [server updateInfosForResponse:nil
+                                    data:data
+                           outOfBandData:&oob];
+  STAssertEquals([infos count], (unsigned)1, nil);
+  STAssertNotNil(oob, nil);
+  STAssertEqualObjects([oob objectForKey:KSOmahaServerSecondsSinceMidnightKey],
+                       [NSNumber numberWithInt:300], nil);
+
+  // Out-of-band data, but no products needing update.  Should still
+  // result in oob data being returned.
+  data = [NSData dataWithBytes:kNoResponseStringWithDaystart
+                        length:strlen(kNoResponseStringWithDaystart)];
+  infos = [server updateInfosForResponse:nil
+                                    data:data
+                           outOfBandData:&oob];
+  STAssertEquals([infos count], (unsigned)0, nil);
+  STAssertNotNil(oob, nil);
+  STAssertEqualObjects([oob objectForKey:KSOmahaServerSecondsSinceMidnightKey],
+                       [NSNumber numberWithInt:19283], nil);
+}
+
+- (void)testInstallSource {
+  NSDictionary *params =
+    [NSDictionary dictionaryWithObjectsAndKeys:
+                  [NSNumber numberWithBool:YES], kUpdateEngineUserInitiated,
+                  nil];
+  KSOmahaServer *server = [KSOmahaServer serverWithURL:httpURL_
+                                                params:params];
+  STAssertNotNil(server, nil);
+  KSTicket *t = [self ticketWithURL:httpURL_
+                              count:0];
+  NSArray *requests = [server requestsForTickets:[NSArray arrayWithObject:t]];
+  NSData *data = [[requests objectAtIndex:0] HTTPBody];
+  NSXMLDocument *doc = [self documentFromRequest:data];
+  NSXMLNode *installsource =
+    [self findInDoc:doc path:@".//o:gupdate/o:app/@installsource" count:1];
+  STAssertEqualObjects([installsource stringValue], @"ondemandupdate", nil);
+
+  // Lack of a user-initiated parameter should result in no installsource.
+  server = [KSOmahaServer serverWithURL:httpURL_
+                                 params:nil];
+  STAssertNotNil(server, nil);
+  requests = [server requestsForTickets:[NSArray arrayWithObject:t]];
+  data = [[requests objectAtIndex:0] HTTPBody];
+  doc = [self documentFromRequest:data];
+  installsource =
+    [self findInDoc:doc path:@".//o:gupdate/o:app/@installsource" count:0];
 }
 
 @end

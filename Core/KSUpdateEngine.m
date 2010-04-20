@@ -16,19 +16,20 @@
 
 #import <unistd.h>
 
-#import "KSTicketStore.h"
-#import "KSFrameworkStats.h"
+#import "KSActionPipe.h"
 #import "KSActionProcessor.h"
 #import "KSCheckAction.h"
-#import "KSPrefetchAction.h"
-#import "KSSilentUpdateAction.h"
-#import "KSPromptAction.h"
-#import "KSActionPipe.h"
-#import "KSUpdateEngineParameters.h"
 #import "KSCommandRunner.h"
+#import "KSFrameworkStats.h"
+#import "KSOutOfBandDataAction.h"
+#import "KSPrefetchAction.h"
+#import "KSPromptAction.h"
+#import "KSSilentUpdateAction.h"
+#import "KSTicketStore.h"
+#import "KSUpdateEngineParameters.h"
 #import "GTMLogger.h"
-#import "GTMPath.h"
 #import "GTMNSString+FindFolder.h"
+#import "GTMPath.h"
 
 
 @interface KSUpdateEngine (PrivateMethods)
@@ -369,20 +370,23 @@ static NSString *gDefaultTicketStorePath = nil;
   NSMutableDictionary *params = [[params_ mutableCopy] autorelease];
   if (stats_) [params setObject:stats_ forKey:kUpdateEngineProductStats];
 
-  // Build a KSMultiAction pipeline with output flowing as indicated:
-  //
-  // KSCheckAction -> KSPrefetchAction -> KSSilentUpdateAction -> KSPromptAction
+  // Build a KSMultiAction pipeline:
 
-  KSAction *check    = [KSCheckAction actionWithTickets:tickets params:params];
+  KSAction *check    = [KSCheckAction actionWithTickets:tickets
+                                                 params:params
+                                                 engine:self];
+  KSAction *oob      = [KSOutOfBandDataAction actionWithEngine:self];
   KSAction *prefetch = [KSPrefetchAction actionWithEngine:self];
   KSAction *silent   = [KSSilentUpdateAction actionWithEngine:self];
   KSAction *prompt   = [KSPromptAction actionWithEngine:self];
 
-  [KSActionPipe bondFrom:check to:prefetch];
+  [KSActionPipe bondFrom:check to:oob];
+  [KSActionPipe bondFrom:oob to:prefetch];
   [KSActionPipe bondFrom:prefetch to:silent];
   [KSActionPipe bondFrom:silent to:prompt];
 
   [processor_ enqueueAction:check];
+  [processor_ enqueueAction:oob];
   [processor_ enqueueAction:prefetch];
   [processor_ enqueueAction:silent];
   [processor_ enqueueAction:prompt];

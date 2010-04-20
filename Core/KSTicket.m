@@ -15,15 +15,15 @@
 #import "KSTicket.h"
 #import "KSExistenceChecker.h"
 
-// When reading a plist file pointed to by a tagpath or brandcode
+// When reading a plist file pointed to by a tag, brandcode, or version
 // path, don't bother reading files over this size.  Chances are
 // someone is trying to feed us a bad file and forcing a crash.  The
 // largest plist found on my Leopard system was 4 megs.
 #define MAX_DATA_FILE_SIZE (5 * 1024 * 1024)
 
-// If we are getting the tag or brandcode from a path/tag combination,
-// make sure that the tag itself isn't unreasonably huge.
-#define MAX_TAGBRAND_SIZE	1024
+// If we are getting the tag, brandcode, or version from a path/tag
+// combination, make sure that the tag itself isn't unreasonably huge.
+#define MAX_PATHTAG_SIZE	1024
 
 
 @implementation KSTicket
@@ -100,6 +100,8 @@
     tagKey_ = [[args objectForKey:KSTicketTagKeyKey] copy];
     brandPath_ = [[args objectForKey:KSTicketBrandPathKey] copy];
     brandKey_ = [[args objectForKey:KSTicketBrandKeyKey] copy];
+    versionPath_ = [[args objectForKey:KSTicketVersionPathKey] copy];
+    versionKey_ = [[args objectForKey:KSTicketVersionKeyKey] copy];
 
     if (creationDate_ == nil) creationDate_ = [[NSDate alloc] init];
 
@@ -227,6 +229,12 @@
     if ([coder containsValueForKey:@"brandKey"]) {
       brandKey_ = [[coder decodeObjectForKey:@"brandKey"] retain];
     }
+    if ([coder containsValueForKey:@"versionPath"]) {
+      versionPath_ = [[coder decodeObjectForKey:@"versionPath"] retain];
+    }
+    if ([coder containsValueForKey:@"versionKey"]) {
+      versionKey_ = [[coder decodeObjectForKey:@"versionKey"] retain];
+    }
   }
   return self;
 }
@@ -243,6 +251,8 @@
   [tagKey_ release];
   [brandPath_ release];
   [brandKey_ release];
+  [versionPath_ release];
+  [versionKey_ release];
   [super dealloc];
 }
 
@@ -259,6 +269,8 @@
   if (tagKey_) [coder encodeObject:tagKey_ forKey:@"tagKey"];
   if (brandPath_) [coder encodeObject:brandPath_ forKey:@"brandPath"];
   if (brandKey_) [coder encodeObject:brandKey_ forKey:@"brandKey"];
+  if (versionPath_) [coder encodeObject:versionPath_ forKey:@"versionPath"];
+  if (versionKey_) [coder encodeObject:versionKey_ forKey:@"versionKey"];
 }
 
 // The trustedTesterToken_, tag, and brand are intentionally excluded from hash.
@@ -301,11 +313,16 @@
     return NO;
   if (brandKey_ && ![brandKey_ isEqual:[ticket brandKey]])
     return NO;
+  if (versionPath_ && ![versionPath_ isEqual:[ticket versionPath]])
+    return NO;
+  if (versionKey_ && ![versionKey_ isEqual:[ticket versionKey]])
+    return NO;
 
   return YES;
 }
 
 - (NSString *)description {
+  // Please keep the description stable.  Clients may depend on the output.
   NSString *tttokenString = @"";
   if (trustedTesterToken_) {
     tttokenString = [NSString stringWithFormat:@"\n\ttrustedTesterToken=%@",
@@ -326,49 +343,20 @@
       [NSString stringWithFormat:@"\n\tbrandPath=%@\n\tbrandKey=%@",
                 brandPath_, brandKey_];
   }
+  NSString *versionPathString = @"";
+  if (versionPath_ && versionKey_) {
+    versionPathString =
+      [NSString stringWithFormat:@"\n\tversionPath=%@\n\tversionKey=%@",
+                versionPath_, versionKey_];
+  }
 
   return [NSString stringWithFormat:
                    @"<%@:%p\n\tproductID=%@\n\tversion=%@\n\t"
-                   @"xc=%@\n\turl=%@\n\tcreationDate=%@%@%@%@%@\n>",
+                   @"xc=%@\n\turl=%@\n\tcreationDate=%@%@%@%@%@%@\n>",
                    [self class], self, productID_,
                    version_, existenceChecker_, serverURL_, creationDate_,
-                   tttokenString, tagString, tagPathString, brandPathString];
-}
-
-- (NSString *)productID {
-  return productID_;
-}
-
-- (NSString *)version {
-  return version_;
-}
-
-- (KSExistenceChecker *)existenceChecker {
-  return existenceChecker_;
-}
-
-- (NSURL *)serverURL {
-  return serverURL_;
-}
-
-- (NSDate *)creationDate {
-  return creationDate_;
-}
-
-- (NSString *)trustedTesterToken {
-  return trustedTesterToken_;
-}
-
-- (NSString *)tag {
-  return tag_;
-}
-
-- (NSString *)tagPath {
-  return tagPath_;
-}
-
-- (NSString *)tagKey {
-  return tagKey_;
+                   tttokenString, tagString, tagPathString, brandPathString,
+                   versionPathString];
 }
 
 - (id)plistForPath:(NSString *)path {
@@ -401,20 +389,86 @@
   return plist;
 }
 
-- (NSString *)determineTag {
-  NSString *tag = tag_;
+- (NSString *)productID {
+  return productID_;
+}
 
-  if (tagPath_ && tagKey_) {
-    id plist = [self plistForPath:tagPath_];
+- (NSString *)version {
+  return version_;
+}
+
+- (NSString *)versionPath {
+  return versionPath_;
+}
+
+- (NSString *)versionKey {
+  return versionKey_;
+}
+
+// Common code for determining the brand, tag, or version given a file system
+// path to a plist, a key within that plist, and an optional default value.
+- (NSString *)determineThingForPath:(NSString *)path
+                                key:(NSString *)key
+                       defaultValue:(NSString *)defaultValue {
+  NSString *thing = defaultValue;
+
+  if (path && key) {
+    id plist = [self plistForPath:path];
     if (plist) {
-      tag = [plist objectForKey:tagKey_];
+      thing = [plist objectForKey:key];
       // Only strings allowed.
-      if (![tag isKindOfClass:[NSString class]]) tag = nil;
-      // Empty string means no tag.
-      if ([tag isEqualToString:@""]) tag = nil;
-      if ([tag length] > MAX_TAGBRAND_SIZE) tag = nil;
+      if (![thing isKindOfClass:[NSString class]]) thing = nil;
+      // Empty string means no thing.
+      if ([thing isEqualToString:@""]) thing = nil;
+      if ([thing length] > MAX_PATHTAG_SIZE) thing = nil;
     }
   }
+
+  return thing;
+}
+
+- (NSString *)determineVersion {
+  NSString *version = [self determineThingForPath:versionPath_
+                                              key:versionKey_
+                                     defaultValue:nil];
+  // No such thing as no version.
+  if (!version) version = version_;
+
+  return version;
+}
+
+- (KSExistenceChecker *)existenceChecker {
+  return existenceChecker_;
+}
+
+- (NSURL *)serverURL {
+  return serverURL_;
+}
+
+- (NSDate *)creationDate {
+  return creationDate_;
+}
+
+- (NSString *)trustedTesterToken {
+  return trustedTesterToken_;
+}
+
+- (NSString *)tag {
+  return tag_;
+}
+
+- (NSString *)tagPath {
+  return tagPath_;
+}
+
+- (NSString *)tagKey {
+  return tagKey_;
+}
+
+- (NSString *)determineTag {
+  NSString *tag = [self determineThingForPath:tagPath_
+                                          key:tagKey_
+                                 defaultValue:tag_];
   return tag;
 }
 
@@ -427,19 +481,9 @@
 }
 
 - (NSString *)determineBrand {
-  NSString *brand = nil;
-
-  if (brandPath_ && brandKey_) {
-    id plist = [self plistForPath:brandPath_];
-    if (plist) {
-      brand = [plist objectForKey:brandKey_];
-      // Only strings allowed.
-      if (![brand isKindOfClass:[NSString class]]) brand = nil;
-      // Empty string means no brand.
-      if ([brand isEqualToString:@""]) brand = nil;
-      if ([brand length] > MAX_TAGBRAND_SIZE) brand = nil;
-    }
-  }
+  NSString *brand = [self determineThingForPath:brandPath_
+                                            key:brandKey_
+                                   defaultValue:nil];
   return brand;
 }
 

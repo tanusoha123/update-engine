@@ -14,6 +14,7 @@
 
 #import "KSServer.h"
 
+#import "KSUpdateEngine.h"
 
 @implementation KSServer
 
@@ -26,6 +27,11 @@
 }
 
 - (id)initWithURL:(NSURL *)url params:(NSDictionary *)params {
+  return [self initWithURL:url params:params engine:nil];
+}
+
+- (id)initWithURL:(NSURL *)url params:(NSDictionary *)params
+           engine:(KSUpdateEngine *)engine {
   if ((self = [super init])) {
     if (url == nil) {
       [self release];
@@ -33,6 +39,7 @@
     }
     url_ = [url retain];
     params_ = [params copy];
+    engine_ = [engine retain];
   }
   return self;
 }
@@ -40,6 +47,7 @@
 - (void)dealloc {
   [url_ release];
   [params_ release];
+  [engine_ release];
   [super dealloc];
 }
 
@@ -49,6 +57,10 @@
 
 - (NSDictionary *)params {
   return params_;
+}
+
+- (KSUpdateEngine *)engine {
+  return engine_;
 }
 
 - (NSString *)description {
@@ -67,12 +79,17 @@
   return nil;
 }
 
-// Subclasses to override.
-- (NSArray *)updateInfosForResponse:(NSURLResponse *)response data:(NSData *)data {
+// Subclasses can override if they supply OOB information.  Otherwise
+// the default will turn around and use -updateInfosForResponse:data
+- (NSArray *)updateInfosForResponse:(NSURLResponse *)response
+                               data:(NSData *)data
+                      outOfBandData:(NSDictionary **)oob {
+  if (oob) *oob = NULL;
   return nil;
 }
 
-- (NSString *)prettyPrintResponse:(NSURLResponse *)response data:(NSData *)data {
+- (NSString *)prettyPrintResponse:(NSURLResponse *)response
+                             data:(NSData *)data {
   return nil;
 }
 

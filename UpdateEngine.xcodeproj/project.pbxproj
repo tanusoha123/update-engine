@@ -99,6 +99,9 @@
 		3863C71C0F6821AA00560B63 /* UEImageDownloadAction.m in Sources */ = {isa = PBXBuildFile; fileRef = 3863C71A0F6821AA00560B63 /* UEImageDownloadAction.m */; };
 		386BD96D10A8A2020055BB7A /* Test-SUCCESS.dmg in Resources */ = {isa = PBXBuildFile; fileRef = F9A708440E5F4BDC004B295E /* Test-SUCCESS.dmg */; };
 		38833FB010F642CE00FBBEF8 /* KSMockFetcherFactoryTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 38833FAF10F642CE00FBBEF8 /* KSMockFetcherFactoryTest.m */; };
+		388E596A1118783C005EB809 /* KSOutOfBandDataAction.m in Sources */ = {isa = PBXBuildFile; fileRef = 388E59681118783C005EB809 /* KSOutOfBandDataAction.m */; };
+		388E596E11187851005EB809 /* KSOutOfBandDataAction.h in Headers */ = {isa = PBXBuildFile; fileRef = 388E59691118783C005EB809 /* KSOutOfBandDataAction.h */; };
+		388E598611187862005EB809 /* KSOutOfBandDataActionTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 388E598511187862005EB809 /* KSOutOfBandDataActionTest.m */; };
 		389603E40EBA3D2900BDA613 /* Test-ENVVAR.dmg in Resources */ = {isa = PBXBuildFile; fileRef = 389603E20EBA3D2900BDA613 /* Test-ENVVAR.dmg */; };
 		38AF7FD10E799EAA0060B504 /* KSCompositeAction.m in Sources */ = {isa = PBXBuildFile; fileRef = F9A707C20E5F4BCF004B295E /* KSCompositeAction.m */; };
 		38AF7FD20E799EAA0060B504 /* KSDiskImage.m in Sources */ = {isa = PBXBuildFile; fileRef = F9A707C60E5F4BCF004B295E /* KSDiskImage.m */; };
@@ -191,6 +194,12 @@
 		38AF82AD0E82CA3F0060B504 /* ERDryRunCommand.m in Sources */ = {isa = PBXBuildFile; fileRef = 38AF82AC0E82CA3F0060B504 /* ERDryRunCommand.m */; };
 		38AF830E0E87EB240060B504 /* ERRunUpdateTicketCommand.m in Sources */ = {isa = PBXBuildFile; fileRef = 38AF830D0E87EB230060B504 /* ERRunUpdateTicketCommand.m */; };
 		38AF83110E87EEAD0060B504 /* ERDryRunTicketCommand.m in Sources */ = {isa = PBXBuildFile; fileRef = 38AF830F0E87EEAD0060B504 /* ERDryRunTicketCommand.m */; };
+		38EC8F8211778CDE0069F037 /* KSOutOfBandDataAction.m in Sources */ = {isa = PBXBuildFile; fileRef = 388E59681118783C005EB809 /* KSOutOfBandDataAction.m */; };
+		38EC8F8711778D130069F037 /* KSOutOfBandDataAction.m in Sources */ = {isa = PBXBuildFile; fileRef = 388E59681118783C005EB809 /* KSOutOfBandDataAction.m */; };
+		38EF03521121C70E00C343F5 /* KSClientActives.m in Sources */ = {isa = PBXBuildFile; fileRef = 38EF034F1121C70E00C343F5 /* KSClientActives.m */; };
+		38EF03531121C70E00C343F5 /* KSClientActives.h in Headers */ = {isa = PBXBuildFile; fileRef = 38EF03501121C70E00C343F5 /* KSClientActives.h */; };
+		38EF03541121C70E00C343F5 /* KSClientActivesTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 38EF034E1121C70E00C343F5 /* KSClientActivesTest.m */; };
+		38EF03551121C70E00C343F5 /* KSClientActives.m in Sources */ = {isa = PBXBuildFile; fileRef = 38EF034F1121C70E00C343F5 /* KSClientActives.m */; };
 		F42CD4A80F58C4D300C15DA3 /* GDataHTTPFetcher.m in Sources */ = {isa = PBXBuildFile; fileRef = F42CD48C0F58C39300C15DA3 /* GDataHTTPFetcher.m */; };
 		F42CD4A90F58C4D300C15DA3 /* GDataHTTPFetcherLogging.m in Sources */ = {isa = PBXBuildFile; fileRef = F42CD48E0F58C39300C15DA3 /* GDataHTTPFetcherLogging.m */; };
 		F42CD4AE0F58C4F700C15DA3 /* GDataHTTPFetcher.m in Sources */ = {isa = PBXBuildFile; fileRef = F42CD48C0F58C39300C15DA3 /* GDataHTTPFetcher.m */; };
@@ -539,6 +548,10 @@
 		3863C7190F6821AA00560B63 /* UECatalogDownloadAction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UECatalogDownloadAction.h; path = Samples/Actions/UECatalogDownloadAction.h; sourceTree = SOURCE_ROOT; };
 		3863C71A0F6821AA00560B63 /* UEImageDownloadAction.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = UEImageDownloadAction.m; path = Samples/Actions/UEImageDownloadAction.m; sourceTree = SOURCE_ROOT; };
 		38833FAF10F642CE00FBBEF8 /* KSMockFetcherFactoryTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KSMockFetcherFactoryTest.m; sourceTree = "<group>"; };
+		388E59681118783C005EB809 /* KSOutOfBandDataAction.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KSOutOfBandDataAction.m; sourceTree = "<group>"; };
+		388E59691118783C005EB809 /* KSOutOfBandDataAction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KSOutOfBandDataAction.h; sourceTree = "<group>"; };
+		388E598511187862005EB809 /* KSOutOfBandDataActionTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KSOutOfBandDataActionTest.m; sourceTree = "<group>"; };
+		388E59DD1118C666005EB809 /* KSActionConstants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KSActionConstants.h; sourceTree = "<group>"; };
 		389603E20EBA3D2900BDA613 /* Test-ENVVAR.dmg */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Test-ENVVAR.dmg"; sourceTree = "<group>"; };
 		38AF7CA10E781C450060B504 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
 		38AF7D4A0E781CA90060B504 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
@@ -567,6 +580,9 @@
 		38AF830D0E87EB230060B504 /* ERRunUpdateTicketCommand.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; name = ERRunUpdateTicketCommand.m; path = Samples/EngineRunner/ERRunUpdateTicketCommand.m; sourceTree = SOURCE_ROOT; };
 		38AF830F0E87EEAD0060B504 /* ERDryRunTicketCommand.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; name = ERDryRunTicketCommand.m; path = Samples/EngineRunner/ERDryRunTicketCommand.m; sourceTree = SOURCE_ROOT; };
 		38AF83100E87EEAD0060B504 /* ERDryRunTicketCommand.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = ERDryRunTicketCommand.h; path = Samples/EngineRunner/ERDryRunTicketCommand.h; sourceTree = SOURCE_ROOT; };
+		38EF034E1121C70E00C343F5 /* KSClientActivesTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KSClientActivesTest.m; sourceTree = "<group>"; };
+		38EF034F1121C70E00C343F5 /* KSClientActives.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KSClientActives.m; sourceTree = "<group>"; };
+		38EF03501121C70E00C343F5 /* KSClientActives.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KSClientActives.h; sourceTree = "<group>"; };
 		F42CD48A0F58C37F00C15DA3 /* GDataDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GDataDefines.h; sourceTree = "<group>"; };
 		F42CD48B0F58C39300C15DA3 /* GDataHTTPFetcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GDataHTTPFetcher.h; sourceTree = "<group>"; };
 		F42CD48C0F58C39300C15DA3 /* GDataHTTPFetcher.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GDataHTTPFetcher.m; sourceTree = "<group>"; };
@@ -1245,9 +1261,13 @@
 			children = (
 				F9A707E10E5F4BDC004B295E /* Framework Test-Info.plist */,
 				F9A708460E5F4BDC004B295E /* UpdateEngine-Info.plist */,
+				388E59DD1118C666005EB809 /* KSActionConstants.h */,
 				F9A707E20E5F4BDC004B295E /* KSCheckAction.h */,
 				F9A707E30E5F4BDC004B295E /* KSCheckAction.m */,
 				F9A707E50E5F4BDC004B295E /* KSCheckActionTest.m */,
+				38EF03501121C70E00C343F5 /* KSClientActives.h */,
+				38EF034F1121C70E00C343F5 /* KSClientActives.m */,
+				38EF034E1121C70E00C343F5 /* KSClientActivesTest.m */,
 				F9A707E60E5F4BDC004B295E /* KSCommandRunner.h */,
 				F9A707E70E5F4BDC004B295E /* KSCommandRunner.m */,
 				F9A707E90E5F4BDC004B295E /* KSCommandRunnerTest.m */,
@@ -1278,6 +1298,9 @@
 				380981D9106A9EE200D31925 /* KSOmahaServer.h */,
 				380981DA106A9EE200D31925 /* KSOmahaServer.m */,
 				380981ED106A9F1200D31925 /* KSOmahaServerTest.m */,
+				388E59691118783C005EB809 /* KSOutOfBandDataAction.h */,
+				388E59681118783C005EB809 /* KSOutOfBandDataAction.m */,
+				388E598511187862005EB809 /* KSOutOfBandDataActionTest.m */,
 				F9A7080C0E5F4BDC004B295E /* KSPlistServer.h */,
 				F9A7080D0E5F4BDC004B295E /* KSPlistServer.m */,
 				F9A7080F0E5F4BDC004B295E /* KSPlistServerTest.m */,
@@ -1440,6 +1463,8 @@
 				F94F49850E91530F00527D68 /* KSUpdateEngineParameters.h in Headers */,
 				F94F49860E91530F00527D68 /* KSUpdateInfo.h in Headers */,
 				380981DE106A9F0100D31925 /* KSOmahaServer.h in Headers */,
+				388E596E11187851005EB809 /* KSOutOfBandDataAction.h in Headers */,
+				38EF03531121C70E00C343F5 /* KSClientActives.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1844,6 +1869,7 @@
 				F9FBC9BC0E883E94006E0CD1 /* KSURLData.m.xxd in Sources */,
 				F42CD4A80F58C4D300C15DA3 /* GDataHTTPFetcher.m in Sources */,
 				F42CD4A90F58C4D300C15DA3 /* GDataHTTPFetcherLogging.m in Sources */,
+				38EC8F8711778D130069F037 /* KSOutOfBandDataAction.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1903,6 +1929,7 @@
 				3830F7350EA8FA9700A8D0D3 /* ERSelfUpdateCommand.m in Sources */,
 				F42CD4AE0F58C4F700C15DA3 /* GDataHTTPFetcher.m in Sources */,
 				F42CD4AF0F58C4F700C15DA3 /* GDataHTTPFetcherLogging.m in Sources */,
+				38EC8F8211778CDE0069F037 /* KSOutOfBandDataAction.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1935,6 +1962,8 @@
 				F42CD4B20F58C50300C15DA3 /* GDataHTTPFetcher.m in Sources */,
 				F42CD4B30F58C50300C15DA3 /* GDataHTTPFetcherLogging.m in Sources */,
 				380981DD106A9EF700D31925 /* KSOmahaServer.m in Sources */,
+				388E596A1118783C005EB809 /* KSOutOfBandDataAction.m in Sources */,
+				38EF03521121C70E00C343F5 /* KSClientActives.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1965,6 +1994,9 @@
 				380981EE106A9F1200D31925 /* KSOmahaServerTest.m in Sources */,
 				380981F0106A9F1D00D31925 /* KSTicketTestBase.m in Sources */,
 				38833FB010F642CE00FBBEF8 /* KSMockFetcherFactoryTest.m in Sources */,
+				388E598611187862005EB809 /* KSOutOfBandDataActionTest.m in Sources */,
+				38EF03541121C70E00C343F5 /* KSClientActivesTest.m in Sources */,
+				38EF03551121C70E00C343F5 /* KSClientActives.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

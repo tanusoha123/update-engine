@@ -63,10 +63,13 @@
   STAssertNil([s requestsForTickets:nil], nil);
   STAssertNil([s requestsForTickets:[NSMutableArray arrayWithCapacity:1]], nil);
   NSData *data = [NSData dataWithBytes:(void *)"hi mom" length:6];
-  STAssertNil([s updateInfosForResponse:nil data:nil], nil);
-  STAssertNil([s updateInfosForResponse:nil data:data], nil);
-  STAssertNil([s updateInfosForResponse:nil data:nil], nil);
-  STAssertNil([s updateInfosForResponse:nil data:data], nil);
+  STAssertNil([s updateInfosForResponse:nil data:data outOfBandData:NULL], nil);
+  STAssertNil([s updateInfosForResponse:nil data:nil outOfBandData:NULL], nil);
+  STAssertNil([s updateInfosForResponse:nil data:data outOfBandData:NULL], nil);
+  STAssertNil([s updateInfosForResponse:nil data:nil outOfBandData:NULL], nil);
+  NSDictionary *oob;
+  STAssertNil([s updateInfosForResponse:nil data:nil outOfBandData:&oob], nil);
+  STAssertNil(oob, nil);
 }
 
 @end
